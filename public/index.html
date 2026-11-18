@@ -176,11 +176,11 @@ footer a:hover{color:var(--fg)}
 .detail{position:fixed;inset:0;z-index:70;background:var(--bg);overflow-y:auto;animation:dIn .5s var(--ease) both;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @keyframes dIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .detail .bar{display:flex;justify-content:space-between;align-items:center;height:64px}
-.dnav{margin:64px 0 48px;padding-top:28px;border-top:1px solid var(--line)}
+.dnav{margin:36px 0 0;padding-top:24px;border-top:1px solid var(--line)}
 .dnav .cnt{margin-bottom:16px;font-variant-numeric:tabular-nums}
-.pngrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.pn{display:grid;grid-template-columns:120px minmax(0,1fr);gap:18px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:14px;color:var(--fg);text-decoration:none;transition:border-color .3s,background .3s}
-.pn.next{grid-template-columns:minmax(0,1fr) 120px;text-align:right}
+.pngrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pn{display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px;color:var(--fg);text-decoration:none;transition:border-color .3s,background .3s}
+.pn.next{grid-template-columns:minmax(0,1fr) 76px;text-align:right}
 .pn.next .pimg{order:2}
 .pn:hover{border-color:var(--accent);background:var(--accent-soft)}
 .pn.empty{border:0;padding:0}
@@ -188,7 +188,7 @@ footer a:hover{color:var(--fg)}
 .pimg img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
 .pn:hover .pimg img{transform:scale(1.06)}
 .ptxt{display:grid;gap:8px;min-width:0}
-.ptxt b{font-size:clamp(22px,2.4vw,32px);line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptxt b{font-size:clamp(20px,1.9vw,26px);line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pmeta{color:var(--muted);font-size:14px}
 @media (max-width:640px){.pngrid{grid-template-columns:1fr}.pn,.pn.next{grid-template-columns:72px minmax(0,1fr);text-align:left}.pn.next .pimg{order:0}.pn.empty{display:none}}
 .detail .close{background:none;border:0;color:var(--fg);font:500 14px/1 var(--b-font);cursor:pointer;padding:8px 0}
@@ -944,7 +944,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       + (url ? '<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Tickets kaufen</a>' : '')
       + '<div class="calrow"><span class="label">Zum Kalender hinzufügen</span><a href="'+esc(gcalUrl(s, v))+'" target="_blank" rel="noopener">Google</a><a href="#" data-ics="'+esc(s.id)+'">Apple</a><a href="'+esc(outlookUrl(s, v))+'" target="_blank" rel="noopener">Outlook</a><p class="calnote" id="calnote" hidden>In dieser Vorschau sind Datei-Downloads gesperrt. Auf der fertigen Website lädt hier die Kalenderdatei für iPhone und Mac.</p></div>'
       + (more.length ? '<div class="more-dates"><p class="label" style="margin-bottom:8px">Weitere Termine</p>' + more.map(function(m){ var mv = venueById(m.venueId); return '<a href="#show-'+esc(m.id)+'"><span>'+ddmm(m.date)+m.date.slice(0,4)+'</span><span>'+esc(mv ? mv.city || mv.name : '')+' →</span></a>'; }).join('') + '</div>' : '')
-      + '</div></div>' + nav + '</div>';
+      + nav + '</div></div></div>';
     el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden';
     $('detail-close').addEventListener('click', function(){ location.hash = 'termine'; });
     Array.prototype.forEach.call(el.querySelectorAll('[data-ics]'), function(a){ a.addEventListener('click', function(e){ e.preventDefault(); downloadIcs(s, v); var n = $('calnote'); if (n && window.claude && !window.NR_SITE) n.hidden = false; }); });
