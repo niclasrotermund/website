@@ -113,7 +113,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .empty{padding:32px 0;color:var(--muted)}
 .peek{position:fixed;left:0;top:0;width:240px;aspect-ratio:4/5;pointer-events:none;z-index:30;opacity:0;transition:opacity .25s;overflow:hidden;background:var(--surface)}
 .peek img{width:100%;height:100%;object-fit:cover}
-.peek.on{opacity:1}
+.peek,.peek.on{display:none}
 @media (max-width:700px){.show a{grid-template-columns:76px minmax(0,1fr);gap:6px 18px}.show .go{grid-column:2}.show .d{font-size:24px}.peek{display:none}}
 
 /* lettering */
