@@ -176,12 +176,21 @@ footer a:hover{color:var(--fg)}
 .detail{position:fixed;inset:0;z-index:70;background:var(--bg);overflow-y:auto;animation:dIn .5s var(--ease) both;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @keyframes dIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .detail .bar{display:flex;justify-content:space-between;align-items:center;height:64px}
-.dnav{display:flex;align-items:center;gap:22px;font:500 14px/1 var(--b-font)}
-.dnav a{color:var(--fg);text-decoration:none;padding:8px 0}
-.dnav a:hover{color:var(--accent)}
-.dnav .off{color:var(--muted);opacity:.4}
-.dnav .cnt{color:var(--muted);font-variant-numeric:tabular-nums}
-@media (max-width:640px){.detail .bar .label{display:none}.dnav{gap:14px}}
+.dnav{margin:64px 0 48px;padding-top:28px;border-top:1px solid var(--line)}
+.dnav .cnt{margin-bottom:16px;font-variant-numeric:tabular-nums}
+.pngrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pn{display:grid;grid-template-columns:120px minmax(0,1fr);gap:18px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:14px;color:var(--fg);text-decoration:none;transition:border-color .3s,background .3s}
+.pn.next{grid-template-columns:minmax(0,1fr) 120px;text-align:right}
+.pn.next .pimg{order:2}
+.pn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.pn.empty{border:0;padding:0}
+.pimg{display:block;aspect-ratio:1;overflow:hidden;border-radius:8px;background:var(--surface)}
+.pimg img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
+.pn:hover .pimg img{transform:scale(1.06)}
+.ptxt{display:grid;gap:8px;min-width:0}
+.ptxt b{font-size:clamp(22px,2.4vw,32px);line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pmeta{color:var(--muted);font-size:14px}
+@media (max-width:640px){.pngrid{grid-template-columns:1fr}.pn,.pn.next{grid-template-columns:72px minmax(0,1fr);text-align:left}.pn.next .pimg{order:0}.pn.empty{display:none}}
 .detail .close{background:none;border:0;color:var(--fg);font:500 14px/1 var(--b-font);cursor:pointer;padding:8px 0}
 .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;padding-block:24px 96px}
 .dgrid>*{min-width:0}
@@ -922,15 +931,20 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var more = s.seriesId ? upcomingPublic().filter(function(x){ return x.seriesId === s.seriesId && x.id !== s.id; }) : [];
     var all = upcomingPublic(), pos = -1; for (var k = 0; k < all.length; k++) if (all[k].id === s.id) pos = k;
     var prev = pos > 0 ? all[pos-1] : null, next = pos >= 0 && pos < all.length - 1 ? all[pos+1] : null;
-    var nav = pos >= 0 && all.length > 1 ? '<div class="dnav">' + (prev ? '<a href="#show-'+esc(prev.id)+'" id="d-prev">← Zurück</a>' : '<span class="off">← Zurück</span>') + '<span class="cnt">'+(pos+1)+' / '+all.length+'</span>' + (next ? '<a href="#show-'+esc(next.id)+'" id="d-next">Weiter →</a>' : '<span class="off">Weiter →</span>') + '</div>' : '';
-    el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span>'+nav+'<button class="close" type="button" id="detail-close">Schließen ✕</button></div>'
+    var card = function(x, dir){
+      if (!x) return '<div class="pn empty"></div>';
+      var xv = venueById(x.venueId), xp = photoFor(x.title) || 'img/header.jpg';
+      return '<a class="pn '+dir+'" href="#show-'+esc(x.id)+'" id="d-'+dir+'"><span class="pimg"><img src="'+esc(xp)+'" alt="" loading="lazy"></span><span class="ptxt"><span class="label">'+(dir === 'prev' ? '← Vorheriger Termin' : 'Nächster Termin →')+'</span><b class="disp">'+esc(x.title)+'</b><span class="pmeta">'+ddmm(x.date)+x.date.slice(0,4)+(xv ? ' · '+esc(xv.city || xv.name) : '')+'</span></span></a>';
+    };
+    var nav = pos >= 0 && all.length > 1 ? '<div class="dnav"><p class="cnt label">Termin '+(pos+1)+' von '+all.length+'</p><div class="pngrid">'+card(prev, 'prev')+card(next, 'next')+'</div></div>' : '';
+    el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span><button class="close" type="button" id="detail-close">Schließen ✕</button></div>'
       + '<div class="dgrid"><div class="dimg"><img src="'+esc(ph)+'" alt="'+esc(s.title)+'"></div><div class="dinfo">'
       + '<p class="dd">'+ddmm(s.date)+d.getFullYear()+'</p><h1 class="disp">'+esc(s.title)+'</h1>'
       + '<ul class="dlist">'+rows.map(function(r){ return '<li><span>'+esc(r[0])+'</span>'+esc(r[1])+'</li>'; }).join('')+'</ul>'
       + (url ? '<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Tickets kaufen</a>' : '')
       + '<div class="calrow"><span class="label">Zum Kalender hinzufügen</span><a href="'+esc(gcalUrl(s, v))+'" target="_blank" rel="noopener">Google</a><a href="#" data-ics="'+esc(s.id)+'">Apple</a><a href="'+esc(outlookUrl(s, v))+'" target="_blank" rel="noopener">Outlook</a><p class="calnote" id="calnote" hidden>In dieser Vorschau sind Datei-Downloads gesperrt. Auf der fertigen Website lädt hier die Kalenderdatei für iPhone und Mac.</p></div>'
       + (more.length ? '<div class="more-dates"><p class="label" style="margin-bottom:8px">Weitere Termine</p>' + more.map(function(m){ var mv = venueById(m.venueId); return '<a href="#show-'+esc(m.id)+'"><span>'+ddmm(m.date)+m.date.slice(0,4)+'</span><span>'+esc(mv ? mv.city || mv.name : '')+' →</span></a>'; }).join('') + '</div>' : '')
-      + '</div></div></div>';
+      + '</div></div>' + nav + '</div>';
     el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden';
     $('detail-close').addEventListener('click', function(){ location.hash = 'termine'; });
     Array.prototype.forEach.call(el.querySelectorAll('[data-ics]'), function(a){ a.addEventListener('click', function(e){ e.preventDefault(); downloadIcs(s, v); var n = $('calnote'); if (n && window.claude && !window.NR_SITE) n.hidden = false; }); });
