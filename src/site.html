@@ -168,6 +168,12 @@ footer a:hover{color:var(--fg)}
 .detail{position:fixed;inset:0;z-index:70;background:var(--bg);overflow-y:auto;animation:dIn .5s var(--ease) both;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @keyframes dIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .detail .bar{display:flex;justify-content:space-between;align-items:center;height:64px}
+.dnav{display:flex;align-items:center;gap:22px;font:500 14px/1 var(--b-font)}
+.dnav a{color:var(--fg);text-decoration:none;padding:8px 0}
+.dnav a:hover{color:var(--accent)}
+.dnav .off{color:var(--muted);opacity:.4}
+.dnav .cnt{color:var(--muted);font-variant-numeric:tabular-nums}
+@media (max-width:640px){.detail .bar .label{display:none}.dnav{gap:14px}}
 .detail .close{background:none;border:0;color:var(--fg);font:500 14px/1 var(--b-font);cursor:pointer;padding:8px 0}
 .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;padding-block:24px 96px}
 .dgrid>*{min-width:0}
@@ -906,7 +912,10 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     if (v) rows.push(['Ort', [v.name, v.address, v.city].filter(Boolean).join(', ')]);
     if (s.seriesName && norm(s.seriesName) !== norm(s.title)) rows.push(['Reihe', s.seriesName]);
     var more = s.seriesId ? upcomingPublic().filter(function(x){ return x.seriesId === s.seriesId && x.id !== s.id; }) : [];
-    el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span><button class="close" type="button" id="detail-close">Schließen ✕</button></div>'
+    var all = upcomingPublic(), pos = -1; for (var k = 0; k < all.length; k++) if (all[k].id === s.id) pos = k;
+    var prev = pos > 0 ? all[pos-1] : null, next = pos >= 0 && pos < all.length - 1 ? all[pos+1] : null;
+    var nav = pos >= 0 && all.length > 1 ? '<div class="dnav">' + (prev ? '<a href="#show-'+esc(prev.id)+'" id="d-prev">← Zurück</a>' : '<span class="off">← Zurück</span>') + '<span class="cnt">'+(pos+1)+' / '+all.length+'</span>' + (next ? '<a href="#show-'+esc(next.id)+'" id="d-next">Weiter →</a>' : '<span class="off">Weiter →</span>') + '</div>' : '';
+    el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span>'+nav+'<button class="close" type="button" id="detail-close">Schließen ✕</button></div>'
       + '<div class="dgrid"><div class="dimg"><img src="'+esc(ph)+'" alt="'+esc(s.title)+'"></div><div class="dinfo">'
       + '<p class="dd">'+ddmm(s.date)+d.getFullYear()+'</p><h1 class="disp">'+esc(s.title)+'</h1>'
       + '<ul class="dlist">'+rows.map(function(r){ return '<li><span>'+esc(r[0])+'</span>'+esc(r[1])+'</li>'; }).join('')+'</ul>'
@@ -959,7 +968,17 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     el.hidden = true; document.body.style.overflow = '';
     if (location.hash === '#termine') window.scrollTo(0, lastScroll);
   }
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !$('detail').hidden) location.hash = 'termine'; });
+  document.addEventListener('keydown', function(e){
+    if ($('detail').hidden) return;
+    if (e.key === 'Escape') location.hash = 'termine';
+    if (e.key === 'ArrowLeft' && $('d-prev')) location.hash = $('d-prev').getAttribute('href').slice(1);
+    if (e.key === 'ArrowRight' && $('d-next')) location.hash = $('d-next').getAttribute('href').slice(1);
+  });
+  (function(){ var x0 = null, y0 = 0;
+    $('detail').addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    $('detail').addEventListener('touchend', function(e){ if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+      if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx)) return; var t = dx < 0 ? $('d-next') : $('d-prev'); if (t) location.hash = t.getAttribute('href').slice(1); });
+  })();
 
   /* ---------- intern ---------- */
   if (window.NR_SITE){
