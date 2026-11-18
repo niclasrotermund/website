@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Niclas Rotermund · Schlagzeuger und Manager</title>
+<meta name="description" content="Niclas Rotermund, Schlagzeuger und Manager. Termine, Videos, Fotos und Booking.">
+<meta property="og:type" content="website"><meta property="og:title" content="Niclas Rotermund"><meta property="og:description" content="Niclas Rotermund, Schlagzeuger und Manager. Termine, Videos, Fotos und Booking.">
+<meta property="og:image" content="https://www.niclasrotermund.com/img/header.jpg"><meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0c0b0a"><link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/anton-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/platform.js"></script>
+</head><body>
+<style>
+/* Layout: one column, few parts, lots of air. Name, photo, ticker, dates, one line of lettering, photos, contact.
+   Five looks switch fonts and light/dark; colours always come from the header photo (set from JS). */
+:root{
+  --bg:#f7f6f3; --surface:#ffffff; --fg:#141312; --muted:#6c6862; --line:#dedad3;
+  --accent:#b07a2a; --accent-soft:rgba(176,122,42,.12); --on-accent:#ffffff;
+  --d-font:"Inter Tight","Helvetica Neue",Arial,sans-serif; --d-weight:700; --d-stretch:100%; --d-case:none; --d-track:-.035em; --d-lh:.9;
+  --b-font:"Inter","Helvetica Neue",Arial,sans-serif; --b-size:16px; --b-track:0;
+  --ok:#2f7a4b; --ok-bg:rgba(47,122,75,.12); --warn:#a0640c; --warn-bg:rgba(160,100,12,.12); --info:#2d5fa0; --info-bg:rgba(45,95,160,.12); --off:#77736d; --off-bg:rgba(0,0,0,.05);
+  --ease:cubic-bezier(.2,.7,.1,1);
+  color-scheme:light;
+}
+:root[data-mode="dark"]{
+  --bg:#0c0b0a; --surface:#151413; --fg:#efece6; --muted:#97928b; --line:rgba(239,236,230,.13);
+  --ok:#7fd6a0; --ok-bg:rgba(127,214,160,.12); --warn:#f0b65a; --warn-bg:rgba(240,182,90,.12); --info:#8fb6ff; --info-bg:rgba(143,182,255,.12); --off:#8a8691; --off-bg:rgba(255,255,255,.06);
+  color-scheme:dark;
+}
+/* looks: fonts only (mode is set alongside in JS) */
+:root[data-look="buehne"]{--d-font:"Archivo","Arial Narrow",Impact,sans-serif; --d-weight:800; --d-stretch:62%; --d-case:uppercase; --d-track:-.01em; --d-lh:.84}
+:root[data-look="editorial"]{--d-font:"Bodoni Moda",Didot,"Times New Roman",serif; --d-weight:500; --d-case:none; --d-track:-.02em; --d-lh:.92}
+:root[data-look="mono"]{--d-font:"Archivo","Helvetica Neue",Arial,sans-serif; --d-weight:600; --d-stretch:100%; --d-case:uppercase; --d-track:-.02em; --d-lh:.9; --b-font:"IBM Plex Mono",ui-monospace,Menlo,monospace; --b-size:14px}
+:root[data-look="kunst"]{--d-font:"Syne","Helvetica Neue",Arial,sans-serif; --d-weight:800; --d-case:none; --d-track:-.04em; --d-lh:.88}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font:400 var(--b-size)/1.6 var(--b-font);letter-spacing:var(--b-track);-webkit-font-smoothing:antialiased;transition:background-color .8s var(--ease),color .8s var(--ease)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(32px,env(safe-area-inset-left,0px));padding-right:max(32px,env(safe-area-inset-right,0px))}
+@media (max-width:640px){.wrap{padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}}
+a{color:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+::selection{background:var(--accent);color:var(--on-accent)}
+.disp{font-family:var(--d-font);font-weight:var(--d-weight);font-stretch:var(--d-stretch);text-transform:var(--d-case);letter-spacing:var(--d-track);line-height:var(--d-lh)}
+.label{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em}
+
+/* nav */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.nav .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;height:64px}
+.nav .brand{font-weight:600;font-size:15px;text-decoration:none;letter-spacing:-.01em}
+.nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0}
+.nav ul a{font-size:14px;text-decoration:none;color:var(--muted);transition:color .25s}
+.nav ul a:hover,.nav ul a.on{color:var(--fg)}
+@media (max-width:520px){.nav ul{gap:16px}.nav .brand{font-size:14px}}
+
+/* hero */
+.hero{position:relative;height:clamp(600px,100svh,1000px);overflow:hidden;background:#0b0a09;color:#fff}
+.hero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 48%,rgba(0,0,0,.7) 100%)}
+.hero-copy{position:absolute;left:0;right:0;bottom:0;z-index:2}
+.hero h1{color:#fff}
+.hero .btn{background:#fff;color:#111;border-color:#fff}
+.hero .btn:hover{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.pub{position:fixed;left:0;right:0;transition:background-color .4s,color .4s}
+.pub.over{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+.pub.over .brand,.pub.over ul a{color:#fff}
+.pub.over ul a{opacity:.85}
+.hero h1{font-size:clamp(56px,12.6vw,176px);white-space:nowrap}
+.hero h1 .w{display:inline-block;white-space:nowrap;overflow:hidden;vertical-align:top;padding-bottom:.06em}
+.hero h1 .ch{display:inline-block;animation:rise 1s var(--ease) both;animation-delay:calc(var(--i) * 32ms + .1s)}
+@keyframes rise{from{transform:translateY(105%)}to{transform:none}}
+.hero .row{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-top:20px;padding-bottom:44px}
+.hero .role{font-size:clamp(18px,1.8vw,22px);color:rgba(255,255,255,.82)}
+.hero .photo{position:absolute;inset:0;overflow:hidden}
+.hero .photo img{position:absolute;inset:-8% 0 0 0;width:100%;height:116%;object-fit:cover;object-position:60% 30%;translate:0 calc(var(--sy,0) * -.12px)}
+@media (max-width:700px){.hero{height:clamp(560px,92svh,820px)}.hero h1{white-space:normal}}
+
+.btn{display:inline-flex;align-items:center;gap:10px;font:500 14px/1 var(--b-font);text-decoration:none;padding:15px 22px;border-radius:999px;border:1px solid var(--fg);background:var(--fg);color:var(--bg);cursor:pointer;transition:background .3s,color .3s,border-color .3s}
+.btn:hover{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.line{background:none;color:var(--fg);border-color:var(--line)}
+.btn.line:hover{border-color:var(--fg);background:none;color:var(--fg)}
+.btn.sm{padding:11px 16px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:default}
+
+/* ticker */
+.ticker{overflow:hidden;white-space:nowrap;border-bottom:1px solid var(--line)}
+.ticker .track{display:inline-flex;padding-block:20px;animation:tick 50s linear infinite}
+.ticker span{display:inline-block;font-family:var(--d-font);font-weight:var(--d-weight);font-stretch:var(--d-stretch);text-transform:var(--d-case);font-size:18px;letter-spacing:0;padding-right:48px;transform:skewX(var(--sk,0deg));transition:transform .3s var(--ease)}
+.ticker i{font-style:normal;color:var(--accent);margin-right:12px;font-variant-numeric:tabular-nums}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker:hover .track{animation-play-state:paused}
+
+/* sections */
+.sec{padding-block:128px}
+.sec h2{font-size:clamp(44px,6.4vw,88px);margin-bottom:56px}
+@media (max-width:700px){.sec{padding-block:80px}.sec h2{margin-bottom:36px}}
+
+/* shows */
+.shows{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.show{border-bottom:1px solid var(--line)}
+.show a{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:28px;align-items:center;padding:28px 0;text-decoration:none;transition:padding .4s var(--ease)}
+.show a:hover{padding-left:12px}
+.show .d{font-family:var(--d-font);font-weight:var(--d-weight);font-stretch:var(--d-stretch);font-size:30px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.show .d small{display:block;font:400 13px/1 var(--b-font);color:var(--muted);margin-top:8px;letter-spacing:0}
+.show h3{font-family:var(--d-font);font-weight:var(--d-weight);font-stretch:var(--d-stretch);text-transform:var(--d-case);font-size:clamp(24px,2.6vw,34px);line-height:1.05;letter-spacing:-.01em}
+.show .meta{margin-top:6px;color:var(--muted);font-size:14px}
+.show .go{font-size:14px;color:var(--muted);white-space:nowrap;transition:color .3s}
+.show a:hover .go{color:var(--accent)}
+.empty{padding:32px 0;color:var(--muted)}
+.peek{position:fixed;left:0;top:0;width:240px;aspect-ratio:4/5;pointer-events:none;z-index:30;opacity:0;transition:opacity .25s;overflow:hidden;background:var(--surface)}
+.peek img{width:100%;height:100%;object-fit:cover}
+.peek.on{opacity:1}
+@media (max-width:700px){.show a{grid-template-columns:76px minmax(0,1fr);gap:6px 18px}.show .go{grid-column:2}.show .d{font-size:24px}.peek{display:none}}
+
+/* lettering */
+.lettering{overflow:hidden;border-block:1px solid var(--line);padding-block:56px}
+.lettering p{font-size:clamp(56px,13vw,200px);white-space:nowrap;text-align:center;color:var(--accent)}
+
+/* calendar */
+.calrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:22px}
+.calrow .label{flex-basis:100%}
+.calrow a{font-size:15px;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:2px}
+.calrow a:hover{color:var(--accent,inherit)}
+.calnote{flex-basis:100%;font-size:13px;color:var(--muted);margin:0}
+
+/* videos */
+.vids{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.vid{display:block;text-decoration:none;min-width:0}
+.vid .cover{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--surface)}
+.vid .cover img{width:100%;height:100%;object-fit:cover;transition:transform 1s var(--ease)}
+.vid .cover::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.25);transition:background .4s}
+.vid:hover .cover img{transform:scale(1.04)}
+.vid:hover .cover::after{background:rgba(0,0,0,.1)}
+.vid .play{position:absolute;left:50%;top:50%;z-index:1;width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;background:#fff;display:grid;place-items:center;transition:transform .4s var(--ease)}
+.vid .play::before{content:"";border-left:18px solid #111;border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:5px}
+.vid:hover .play{transform:scale(1.08)}
+.vid .vt{display:flex;justify-content:space-between;gap:12px;margin-top:12px;font-size:15px}
+.vid .vt span{color:var(--muted);font-size:13px;white-space:nowrap}
+.vid.first{grid-column:1/-1}
+@media (max-width:640px){.vids{grid-template-columns:1fr}}
+
+/* media */
+.gal{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.gal figure{margin:0;overflow:hidden;background:var(--surface)}
+.gal img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;transition:transform 1s var(--ease)}
+.gal figure:hover img{transform:scale(1.03)}
+.credit{margin-top:24px;color:var(--muted);font-size:13px}
+@media (max-width:600px){.gal{grid-template-columns:1fr}}
+
+/* contact */
+.mail{display:block;font-size:clamp(30px,6vw,84px);overflow-wrap:anywhere;margin-bottom:24px}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:72px}
+.contact-grid>*{min-width:0}
+.uform{display:grid;gap:28px}
+.uform label{display:grid;gap:6px;font-size:13px;color:var(--muted)}
+.uform input,.uform textarea{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 0;font:400 18px/1.4 var(--b-font);color:var(--fg);width:100%}
+.uform input:focus,.uform textarea:focus{outline:none;border-bottom-color:var(--fg)}
+.uform textarea{min-height:90px;resize:vertical}
+.uform .btn{justify-self:start}
+.socials{display:flex;gap:24px;margin-top:40px;font-size:14px}
+.socials a{text-decoration:none;color:var(--muted)}
+.socials a:hover{color:var(--fg)}
+.msg{font-size:14px;color:var(--muted);min-height:1em}
+@media (max-width:800px){.contact-grid{grid-template-columns:1fr;gap:48px;margin-top:48px}}
+
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;padding-block:32px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 22px}
+footer a{text-decoration:none}
+footer a:hover{color:var(--fg)}
+
+/* detail */
+.detail{position:fixed;inset:0;z-index:70;background:var(--bg);overflow-y:auto;animation:dIn .5s var(--ease) both;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@keyframes dIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.detail .bar{display:flex;justify-content:space-between;align-items:center;height:64px}
+.detail .close{background:none;border:0;color:var(--fg);font:500 14px/1 var(--b-font);cursor:pointer;padding:8px 0}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;padding-block:24px 96px}
+.dgrid>*{min-width:0}
+.dimg{aspect-ratio:4/5;overflow:hidden;background:var(--surface)}
+.dimg img{width:100%;height:100%;object-fit:cover}
+.dinfo .dd{font-family:var(--d-font);font-weight:var(--d-weight);font-stretch:var(--d-stretch);font-size:clamp(28px,3vw,40px);line-height:1;color:var(--accent)}
+.dinfo h1{font-size:clamp(48px,6vw,96px);margin-top:18px}
+.dlist{margin:40px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.dlist li{display:grid;grid-template-columns:120px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line);font-size:15px}
+.dlist li span{color:var(--muted)}
+.more-dates{margin-top:40px}
+.more-dates a{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);text-decoration:none;font-size:15px}
+.more-dates a:hover{color:var(--accent)}
+.dinfo .btn{margin-top:32px}
+@media (max-width:800px){.dgrid{grid-template-columns:1fr;gap:32px}.dimg{aspect-ratio:4/3}.dlist li{grid-template-columns:96px 1fr}}
+
+/* look picker */
+.picker{position:fixed;right:max(18px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));z-index:65}
+.picker>button{background:var(--fg);color:var(--bg);border:0;border-radius:999px;padding:12px 18px;font:500 13px/1 "Inter",Arial,sans-serif;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.ppanel{position:absolute;right:0;bottom:56px;width:300px;max-width:calc(100vw - 36px);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 16px 48px rgba(0,0,0,.2)}
+.ppanel p{font:500 12px/1.4 "Inter",Arial,sans-serif;color:var(--muted);padding:8px 10px 6px}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:none;border:0;border-radius:10px;padding:12px 10px;color:var(--fg);cursor:pointer;text-align:left}
+.opt:hover{background:var(--accent-soft)}
+.opt[aria-pressed="true"]{background:var(--accent-soft)}
+.opt b{font-size:22px;line-height:1}
+.ppanel{max-height:calc(100vh - 100px);overflow:auto}
+#bfonts{border-top:1px solid var(--line);margin-top:6px;padding-top:4px}
+.opt small{font:400 11px/1.3 "Inter",Arial,sans-serif;color:var(--muted);text-align:right}
+
+/* scroll reveals (supported browsers) */
+@supports (animation-timeline: view()){
+  .sec h2,.show,.gal figure,.mail,.lettering p{animation:reveal linear both;animation-timeline:view();animation-range:entry 0% entry 60%}
+  .lettering p{animation:slide linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
+}
+@keyframes reveal{from{translate:0 48px}to{translate:0 0}}
+@keyframes slide{from{translate:12% 0}to{translate:-12% 0}}
+
+/* ---------- intern ---------- */
+.intern{min-height:100vh}
+.ihead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:20px;padding-block:48px 32px}
+.ihead h1{font-size:clamp(44px,6vw,80px)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:8px;min-width:0}
+.stat b{font-family:var(--d-font);font-weight:var(--d-weight);font-stretch:var(--d-stretch);font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+@media (max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+.ilayout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:20px;align-items:start;padding-block:20px 96px}
+@media (max-width:1000px){.ilayout{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;min-width:0}
+.ctitle{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.ctitle h2{font-size:28px}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--bg);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;color:var(--muted);font:500 13px/1 var(--b-font);padding:8px 12px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:0 12px 10px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:13px 12px 13px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+td .sub{color:var(--muted);font-size:12px}
+.st{display:inline-block;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;white-space:nowrap}
+.st.anfrage{color:var(--warn);background:var(--warn-bg)}
+.st.option{color:var(--info);background:var(--info-bg)}
+.st.bestaetigt{color:var(--ok);background:var(--ok-bg)}
+.st.abgesagt{color:var(--off);background:var(--off-bg)}
+.flags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.flag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+.flag.on{color:var(--bg);background:var(--fg);border-color:var(--fg)}
+.flag.series{color:var(--accent);border-color:var(--accent)}
+.linkbtn{background:none;border:0;padding:0;color:var(--fg);font:500 13px/1 var(--b-font);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
+.linkbtn:hover{text-decoration-color:var(--fg)}
+.linkbtn.danger:hover{color:#d23b3b}
+.rowact{display:flex;gap:14px;white-space:nowrap;align-items:center}
+.iform{display:grid;gap:14px}
+label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
+.iform input,.iform textarea,.iform select{width:100%;font:400 15px/1.4 "Inter",Arial,sans-serif;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.iform input:focus,.iform textarea:focus,.iform select:focus{outline:none;border-color:var(--accent)}
+.iform textarea{min-height:90px;resize:vertical}
+.iform input[type="checkbox"]{width:16px;height:16px;padding:0;accent-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+@media (max-width:520px){.row2,.row3{grid-template-columns:1fr}}
+.hint{font-size:12px;color:var(--ok)}
+.hint.new{color:var(--warn)}
+.box{display:grid;gap:12px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.check{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--fg)}
+.checks{display:flex;flex-wrap:wrap;gap:10px 18px}
+.iempty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;font-size:14px}
+.shint{font-size:12px;color:var(--muted);line-height:1.45}
+/* calendar */
+.cal{user-select:none}
+.calhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:600;font-size:14px}
+.calhead button{background:none;border:1px solid var(--line);color:var(--fg);border-radius:999px;width:30px;height:30px;cursor:pointer}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.calgrid .wd{font-size:11px;color:var(--muted);text-align:center;padding:4px 0}
+.calgrid button{aspect-ratio:1;border:1px solid transparent;background:var(--surface);color:var(--fg);border-radius:8px;font:500 13px/1 "Inter",Arial,sans-serif;cursor:pointer;font-variant-numeric:tabular-nums}
+.calgrid button:hover{border-color:var(--accent)}
+.calgrid button.sel{background:var(--accent);color:var(--on-accent)}
+.calgrid button.main{background:var(--fg);color:var(--bg)}
+.calgrid button.past{opacity:.35}
+.srows{display:grid;gap:6px}
+.srow{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums}
+.srow .x{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;width:28px;height:28px;cursor:pointer}
+/* artists */
+.alist{display:grid;gap:8px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.pcell{position:relative;border-radius:10px;overflow:hidden;background:var(--bg)}
+.pcell img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
+.pcell .pact{display:flex;flex-wrap:wrap;gap:8px 12px;padding:10px 10px 12px}
+.pcell .badge{position:absolute;left:6px;top:6px;background:var(--accent);color:var(--on-accent);font:600 11px/1 var(--b-font);padding:5px 7px;border-radius:999px}
+.arow{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.arow:last-child{border-bottom:0}
+.thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--bg);display:block}
+.thumb.ph{display:grid;place-items:center;color:var(--muted);font-size:18px;border:1px dashed var(--line)}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.aform{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end;margin-top:14px}
+@media (max-width:520px){.aform{grid-template-columns:1fr 1fr}}
+.gate{padding-block:120px}
+.gate p{color:var(--muted);margin-top:16px;max-width:48ch}
+.gate-login{max-width:420px;margin-top:32px}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .hero .photo img{translate:none}
+}
+</style>
+
+<!-- ================= PUBLIC ================= -->
+<div id="view-public">
+<nav class="nav pub over" aria-label="Hauptmenü">
+  <div class="wrap">
+    <a class="brand" href="#start">Niclas Rotermund</a>
+    <ul>
+      <li><a href="#termine">Termine</a></li>
+      <li><a href="#videos">Videos</a></li>
+      <li><a href="#medien">Medien</a></li>
+      <li><a href="#kontakt">Kontakt</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main id="start">
+  <section class="hero">
+    <div class="photo"><img id="hero-img" src="img/header.jpg" alt="Niclas Rotermund am Schlagzeug auf der Bühne vor rotem Hintergrund" style="object-position:42% 40%"></div>
+    <div class="hero-copy">
+      <div class="wrap">
+        <h1 class="disp" id="hero-name"><span class="w">Niclas</span> <span class="w">Rotermund</span></h1>
+        <div class="row">
+          <p class="role">Schlagzeuger und Manager</p>
+          <a class="btn" href="#kontakt">Booking anfragen</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ticker" aria-hidden="true"><div class="track" id="ticker"></div></div>
+
+  <section class="sec" id="termine">
+    <div class="wrap">
+      <h2 class="disp">Termine</h2>
+      <div id="public-shows"><div class="empty">Termine werden geladen …</div></div>
+    </div>
+  </section>
+
+  <div class="lettering" aria-hidden="true"><p class="disp">Live. Studio. Tour.</p></div>
+
+  <section class="sec" id="videos">
+    <div class="wrap">
+      <h2 class="disp">Videos</h2>
+      <div class="vids" id="public-videos"><div class="empty">Videos werden geladen …</div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="medien" style="padding-top:0">
+    <div class="wrap">
+      <h2 class="disp">Medien</h2>
+      <div class="gal" id="gal">
+        <figure><img src="img/g1.jpg" alt="Niclas Rotermund am roten Keyboard im warmen Licht" loading="lazy" style="object-position:62% 50%"></figure>
+        <figure><img src="img/g2.jpg" alt="Niclas Rotermund am Keyboard in orangem Licht" loading="lazy"></figure>
+        <figure><img src="img/g3.jpg" alt="Niclas Rotermund am Keyboard im violetten Licht" loading="lazy"></figure>
+        <figure><img src="img/g4.jpg" alt="Niclas Rotermund an Keys und Gesang vor rotem Laura-Nahr-Banner" loading="lazy" style="object-position:40% 50%"></figure>
+        <figure><img src="img/g5.jpg" alt="Schlagzeug im roten Bühnenlicht" loading="lazy"></figure>
+        <figure><img src="img/g6.jpg" alt="Band von hinten vor dem Publikum" loading="lazy"></figure>
+        <figure><img src="img/g7.jpg" alt="Hände auf dem Keyboard" loading="lazy" style="object-position:60% 50%"></figure>
+        <figure><img src="img/g8.jpg" alt="Band mit dem Publikum nach der Show" loading="lazy"></figure>
+      </div>
+      <p class="credit" id="credit" hidden></p>
+    </div>
+  </section>
+
+  <section class="sec" id="kontakt" style="border-top:1px solid var(--line)">
+    <div class="wrap">
+      <h2 class="disp" style="margin-bottom:24px">Kontakt</h2>
+      <p class="mail disp" id="mail">info@niclasrotermund.com</p>
+      <button class="btn line sm" id="copy-btn" type="button">Adresse kopieren</button>
+      <div class="contact-grid">
+        <div>
+          <p style="font-size:20px;max-width:26ch">Für Konzerte, Studio-Sessions und Management. Ich melde mich innerhalb von 48 Stunden.</p>
+          <div class="socials"><a href="#kontakt">Instagram</a><a href="#kontakt">YouTube</a><a href="#kontakt">Spotify</a></div>
+        </div>
+        <form class="uform" id="contact-form">
+          <label for="c-name">Name<input id="c-name" autocomplete="name"></label>
+          <label for="c-mail">E-Mail<input id="c-mail" type="email" autocomplete="email"></label>
+          <label for="c-msg">Nachricht<textarea id="c-msg"></textarea></label>
+          <button class="btn" type="submit">Anfrage senden</button>
+          <p class="msg" id="contact-msg" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Niclas Rotermund</span>
+    <nav aria-label="Fußzeile"><a href="/impressum">Impressum</a><a href="/datenschutz">Datenschutz</a><a href="#intern">Interner Bereich</a></nav>
+  </div>
+</footer>
+
+<div class="peek" id="peek" aria-hidden="true"><img alt=""></div>
+<div class="detail" id="detail" hidden role="dialog" aria-modal="true" aria-label="Show-Details"></div>
+</div>
+
+<!-- look picker -->
+<div class="picker" id="picker" hidden>
+  <div class="ppanel" id="ppanel" hidden>
+    <p>Design wählen. Farben kommen immer aus dem Startfoto.</p>
+    <div id="opts"></div>
+    <div id="bfonts" hidden><p>Schrift für Bühne</p><div id="bopts"></div></div>
+  </div>
+  <button type="button" id="picker-btn" aria-expanded="false">Design</button>
+</div>
+
+<!-- ================= INTERN ================= -->
+<div id="view-intern" class="intern" hidden>
+<nav class="nav" aria-label="Intern">
+  <div class="wrap">
+    <a class="brand" href="#start">Niclas Rotermund</a>
+    <ul>
+      <li><a href="#intern" class="on">Booking &amp; Orga</a></li>
+      <li><a href="#start">Zur Website</a></li>
+      <li id="out-li" hidden><a href="#intern" id="out-link">Abmelden</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div id="intern-gate" class="wrap gate" hidden>
+  <h1 class="disp" style="font-size:clamp(44px,6vw,80px)">Nur für dich</h1>
+  <p id="gate-text">Hier pflegst du Shows, Venues und Artists.</p>
+  <form class="uform gate-login" id="gate-login" hidden autocomplete="on">
+    <label for="gl-mail">E-Mail<input id="gl-mail" type="email" autocomplete="email" required></label>
+    <label for="gl-pw">Passwort<input id="gl-pw" type="password" autocomplete="current-password" required></label>
+    <button class="btn" type="submit">Anmelden</button>
+    <p class="msg" id="gl-msg" role="status"></p>
+  </form>
+  <button class="btn line sm" type="button" id="gate-out" hidden style="margin-top:24px">Abmelden</button>
+</div>
+
+<div id="intern-app" hidden>
+  <div class="wrap ihead">
+    <h1 class="disp">Booking &amp; Orga</h1>
+    <button class="btn" type="button" id="new-show-btn">Neue Show</button>
+  </div>
+  <div class="wrap">
+    <div class="stats" id="stats"></div>
+    <div class="ilayout">
+      <div style="display:grid;gap:20px;min-width:0">
+        <div class="card">
+          <div class="ctitle">
+            <h2 class="disp">Shows</h2>
+            <div class="seg tabs" role="group" aria-label="Filter">
+              <button type="button" data-f="kommend" aria-pressed="true">Kommend</button>
+              <button type="button" data-f="anfragen" aria-pressed="false">Anfragen</button>
+              <button type="button" data-f="vergangen" aria-pressed="false">Vergangen</button>
+              <button type="button" data-f="alle" aria-pressed="false">Alle</button>
+            </div>
+          </div>
+          <div class="tablewrap" id="show-table"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><h2 class="disp">Artists</h2><span class="label">Foto erscheint bei den Shows dieses Artists</span></div>
+          <div class="alist" id="artist-list"></div>
+          <form class="iform aform" id="artist-form" autocomplete="off">
+            <label class="f" for="a-name">Name<input id="a-name" required placeholder="z. B. Sarife"></label>
+            <label class="btn line sm filebtn" for="a-file">Foto wählen<input id="a-file" type="file" accept="image/jpeg,image/png,image/webp"></label>
+            <button class="btn sm" type="submit" id="a-save">Hinzufügen</button>
+          </form>
+          <p class="msg" id="artist-msg" role="status"></p>
+        </div>
+        <div class="card">
+          <div class="ctitle"><h2 class="disp">Videos</h2><span class="label">YouTube- oder Instagram-Link einfügen</span></div>
+          <div class="alist" id="video-list"></div>
+          <form class="iform" id="video-form" autocomplete="off" style="margin-top:14px">
+            <label class="f" for="vd-url">Link<input id="vd-url" type="url" required placeholder="https://youtube.com/watch?v=… oder https://instagram.com/reel/…"></label>
+            <label class="f" for="vd-title">Titel<input id="vd-title" placeholder="z. B. Laura Nahr live in Leipzig"></label>
+            <div class="rowact"><label class="btn line sm filebtn" for="vd-file">Titelbild wählen<input id="vd-file" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="btn sm" type="submit" id="vd-save">Hinzufügen</button></div>
+          </form>
+          <p class="msg" id="video-msg" role="status"></p>
+        </div>
+        <div class="card">
+          <div class="ctitle"><h2 class="disp">Fotos</h2><span class="label">Galerie unter „Medien“ und Startbild</span></div>
+          <div class="pgrid" id="photo-list"></div>
+          <form class="iform" id="photo-form" autocomplete="off" style="margin-top:14px">
+            <label class="f" for="ph-credit">Fotograf:in (optional)<input id="ph-credit" placeholder="z. B. Pia Muster"></label>
+            <div class="rowact"><label class="btn line sm filebtn" for="ph-file">Fotos wählen<input id="ph-file" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><button class="btn sm" type="submit" id="ph-save">Hochladen</button></div>
+          </form>
+          <p class="msg" id="photo-msg" role="status"></p>
+        </div>
+        <div class="card">
+          <div class="ctitle"><h2 class="disp">Venues</h2><span class="label">Werden beim Speichern einer Show automatisch angelegt</span></div>
+          <div class="tablewrap" id="venue-table"></div>
+        </div>
+      </div>
+
+      <div class="card" id="editor">
+        <div class="ctitle"><h2 class="disp" id="editor-title">Neue Show</h2><button class="linkbtn" type="button" id="editor-reset">Leeren</button></div>
+        <form class="iform" id="show-form" autocomplete="off">
+          <label class="f" for="s-title">Artist / Projekt<input id="s-title" list="artist-dl" required placeholder="z. B. Sarife"></label>
+          <datalist id="artist-dl"></datalist>
+          <div class="row3">
+            <label class="f" for="s-date">Datum<input id="s-date" type="date" required></label>
+            <label class="f" for="s-start">Beginn<input id="s-start" type="time"></label>
+            <label class="f" for="s-end">Ende<input id="s-end" type="time"></label>
+          </div>
+          <label class="f" for="s-venue">Venue
+            <input id="s-venue" list="venue-list" placeholder="Name eintippen oder auswählen">
+            <span class="hint" id="venue-hint"></span>
+          </label>
+          <datalist id="venue-list"></datalist>
+          <div class="box" id="newvenue" hidden>
+            <span class="label">Neue Venue wird gespeichert</span>
+            <div class="row2">
+              <label class="f" for="v-city">Stadt<input id="v-city"></label>
+              <label class="f" for="v-address">Adresse<input id="v-address"></label>
+            </div>
+            <div class="row2">
+              <label class="f" for="v-contact">Ansprechpartner<input id="v-contact"></label>
+              <label class="f" for="v-contactmail">Mail / Telefon<input id="v-contactmail"></label>
+            </div>
+          </div>
+
+          <div id="series-new" style="display:grid;gap:12px">
+            <label class="check" for="s-isseries"><input id="s-isseries" type="checkbox"> Eventreihe (Tour, Produktion)</label>
+            <div class="box" id="series-box" hidden>
+              <label class="f" for="s-seriesname">Name der Reihe<input id="s-seriesname" placeholder="z. B. Sarife Tour 2027"></label>
+              <span class="shint">Weitere Termine im Kalender anklicken. Noch mal klicken entfernt sie. Schwarz ist das Datum von oben.</span>
+              <div class="cal">
+                <div class="calhead"><button type="button" id="cal-prev" aria-label="Vorheriger Monat">‹</button><span id="cal-title"></span><button type="button" id="cal-next" aria-label="Nächster Monat">›</button></div>
+                <div class="calgrid" id="cal-grid"></div>
+              </div>
+              <div class="srows" id="series-rows"></div>
+              <span class="shint" id="series-count"></span>
+            </div>
+          </div>
+          <div class="box" id="series-edit" hidden>
+            <span class="label" id="series-edit-label"></span>
+            <label class="check" for="s-applyall"><input id="s-applyall" type="checkbox"> Änderungen für alle Termine der Reihe übernehmen</label>
+            <span class="shint">Übernimmt Titel, Uhrzeit, Ticket-Link, Status, Website, Gage, Vertrag und Notizen. Datum, Venue und „Bezahlt“ bleiben pro Termin.</span>
+          </div>
+
+          <label class="f" for="s-tickets">Ticket-Link<input id="s-tickets" type="url" placeholder="https://"></label>
+          <div class="row2">
+            <label class="f" for="s-status">Status
+              <select id="s-status">
+                <option value="anfrage">Anfrage</option>
+                <option value="option">Option</option>
+                <option value="bestaetigt">Bestätigt</option>
+                <option value="abgesagt">Abgesagt</option>
+              </select>
+            </label>
+            <label class="f" for="s-fee">Gage (€)<input id="s-fee" type="number" min="0" step="10" inputmode="decimal"></label>
+          </div>
+          <div class="checks">
+            <label class="check" for="s-public"><input id="s-public" type="checkbox"> Auf Website zeigen</label>
+            <label class="check" for="s-contract"><input id="s-contract" type="checkbox"> Vertrag da</label>
+            <label class="check" for="s-paid"><input id="s-paid" type="checkbox"> Bezahlt</label>
+          </div>
+          <label class="f" for="s-notes">Orga-Notizen<textarea id="s-notes" placeholder="Soundcheck, Backline, Anreise, Catering …"></textarea></label>
+          <div><button class="btn" type="submit" id="save-btn">Speichern</button></div>
+          <p class="msg" id="form-msg" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var WD = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  var WDs = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  var MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  var STATUS = {anfrage:'Anfrage', option:'Option', bestaetigt:'Bestätigt', abgesagt:'Abgesagt'};
+  function parseD(s){ var p = (s||'').split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function fmt(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+  function todayStr(){ return fmt(new Date()); }
+  function ddmm(s){ var p = s.split('-'); return p[2]+'.'+p[1]+'.'; }
+  function timeRange(sh){ if(!sh.start) return ''; return sh.start + (sh.end ? '–' + sh.end : '') + ' Uhr'; }
+  function safeUrl(u){ return /^https?:\/\//i.test(u||'') ? u : ''; }
+  function norm(s){ return (s||'').trim().toLowerCase(); }
+  function safeGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function safeSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+  var state = { shows: [], venues: [], artists: [], videos: [], photos: [], gallery: {}, details: {}, filter: 'kommend', editing: null, canEdit: false, dbReady: false };
+  var db = null, user = null, assets = null;
+
+  /* ---------- looks + palette ---------- */
+  var LOOKS = [
+    { id: 'clean',     name: 'Clean',     mode: 'light', font: '"Inter Tight"', w: 700, info: 'Inter Tight · hell' },
+    { id: 'buehne',    name: 'Bühne',     mode: 'dark',  font: '"Archivo"', w: 800, stretch: '62%', up: true, info: 'Archivo schmal · dunkel' },
+    { id: 'editorial', name: 'Editorial', mode: 'light', font: '"Bodoni Moda"', w: 500, info: 'Bodoni · hell' },
+    { id: 'mono',      name: 'Mono',      mode: 'dark',  font: '"Archivo"', w: 600, up: true, info: 'Archivo + Plex Mono · dunkel' },
+    { id: 'kunst',     name: 'Kunst',     mode: 'dark',  font: '"Syne"', w: 800, info: 'Syne · dunkel' }
+  ];
+  var BFONTS = [
+    { id: 'archivo', name: 'Archivo',  font: '"Archivo"', w: 800, stretch: '62%', track: '-.01em', lh: '.84', info: 'schmal, kräftig' },
+    { id: 'anton',   name: 'Anton',    font: '"Anton"', w: 400, stretch: '100%', track: '0em', lh: '.9', info: 'Plakat, sehr fett' },
+    { id: 'bebas',   name: 'Bebas',    font: '"Bebas Neue"', w: 400, stretch: '100%', track: '.01em', lh: '.86', info: 'klassisch Konzert' },
+    { id: 'oswald',  name: 'Oswald',   font: '"Oswald"', w: 700, stretch: '100%', track: '-.01em', lh: '.92', info: 'ruhig, sauber' },
+    { id: 'barlow',  name: 'Barlow',   font: '"Barlow Condensed"', w: 800, stretch: '100%', track: '-.01em', lh: '.86', info: 'modern, technisch' },
+    { id: 'antonio', name: 'Antonio',  font: '"Antonio"', w: 700, stretch: '100%', track: '-.01em', lh: '.9', info: 'elegant, hoch' },
+    { id: 'saira',   name: 'Saira',    font: '"Saira Extra Condensed"', w: 800, stretch: '100%', track: '0em', lh: '.84', info: 'extrem schmal' }
+  ];
+  var bfont = 'anton';
+  function bfontById(id){ for (var i=0;i<BFONTS.length;i++) if (BFONTS[i].id === id) return BFONTS[i]; return BFONTS[0]; }
+  function applyBfont(){
+    var r = document.documentElement, keys = ['--d-font','--d-weight','--d-stretch','--d-track','--d-lh'];
+    var box = document.getElementById('bfonts'); if (box) box.hidden = look !== 'buehne';
+    if (look !== 'buehne'){ keys.forEach(function(k){ r.style.removeProperty(k); }); return; }
+    var F = bfontById(bfont);
+    r.style.setProperty('--d-font', F.font + ',"Arial Narrow",Impact,sans-serif'); r.style.setProperty('--d-weight', String(F.w));
+    r.style.setProperty('--d-stretch', F.stretch); r.style.setProperty('--d-track', F.track); r.style.setProperty('--d-lh', F.lh);
+    document.querySelectorAll('#bopts .opt').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-bfont') === bfont ? 'true' : 'false'); });
+  }
+  var pal = { h: 36, s: 70 };
+  var look = 'clean';
+  function lookById(id){ for (var i=0;i<LOOKS.length;i++) if (LOOKS[i].id === id) return LOOKS[i]; return LOOKS[0]; }
+  function paint(){
+    var L = lookById(look), r = document.documentElement, H = pal.h, S = pal.s, set = function(k,v){ r.style.setProperty(k, v); };
+    r.setAttribute('data-look', L.id); r.setAttribute('data-mode', L.mode);
+    if (L.mode === 'dark'){
+      set('--bg', 'hsl('+H+' 12% 5%)'); set('--surface', 'hsl('+H+' 10% 9%)'); set('--fg', 'hsl('+H+' 25% 93%)');
+      set('--muted', 'hsl('+H+' 6% 60%)'); set('--line', 'hsl('+H+' 25% 93% / .13)');
+      set('--accent', 'hsl('+H+' '+S+'% 62%)'); set('--on-accent', 'hsl('+H+' 20% 8%)');
+    } else {
+      set('--bg', 'hsl('+H+' 18% 96.5%)'); set('--surface', 'hsl('+H+' 20% 99%)'); set('--fg', 'hsl('+H+' 12% 8%)');
+      set('--muted', 'hsl('+H+' 5% 40%)'); set('--line', 'hsl('+H+' 10% 86%)');
+      set('--accent', 'hsl('+H+' '+S+'% 38%)'); set('--on-accent', '#fff');
+    }
+    set('--accent-soft', 'hsl('+H+' '+S+'% 50% / .12)');
+    document.querySelectorAll('#opts .opt').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-look') === look ? 'true' : 'false'); });
+    applyBfont();
+  }
+  function rgb2hsl(r,g,b){ r/=255; g/=255; b/=255; var mx=Math.max(r,g,b), mn=Math.min(r,g,b), h=0, s=0, l=(mx+mn)/2;
+    if (mx !== mn){ var d=mx-mn; s = l > .5 ? d/(2-mx-mn) : d/(mx+mn);
+      h = mx===r ? (g-b)/d + (g<b?6:0) : mx===g ? (b-r)/d + 2 : (r-g)/d + 4; h/=6; }
+    return [h,s,l]; }
+  function readPalette(img){
+    try {
+      var c = document.createElement('canvas'), W = 72, Hh = 72; c.width = W; c.height = Hh;
+      var x = c.getContext('2d'); x.drawImage(img, 0, 0, W, Hh);
+      var px = x.getImageData(0, 0, W, Hh).data, bins = [], i;
+      for (i = 0; i < 36; i++) bins.push({ w: 0, h: 0, s: 0 });
+      for (i = 0; i < px.length; i += 4){
+        var hsl = rgb2hsl(px[i], px[i+1], px[i+2]);
+        if (hsl[1] < .28 || hsl[2] < .2 || hsl[2] > .85) continue;
+        var w = hsl[1] * (1 - Math.abs(hsl[2] - .55)), bi = Math.floor(hsl[0] * 36) % 36;
+        bins[bi].w += w; bins[bi].h += hsl[0] * w; bins[bi].s += hsl[1] * w;
+      }
+      var best = bins.reduce(function(a, b){ return b.w > a.w ? b : a; });
+      if (!best.w) return;
+      pal.h = Math.round(best.h / best.w * 360); pal.s = Math.round(Math.min(.85, Math.max(.5, best.s / best.w)) * 100);
+      paint();
+    } catch(err){}
+  }
+  look = 'buehne';
+  paint();
+  var heroImg = $('hero-img');
+  heroImg.addEventListener('load', function(){ readPalette(heroImg); }); if (heroImg.complete && heroImg.naturalWidth) readPalette(heroImg);
+
+  $('opts').innerHTML = LOOKS.map(function(L){
+    return '<button type="button" class="opt" data-look="'+L.id+'"><b style="font-family:'+L.font.replace(/"/g, "'")+',sans-serif;font-weight:'+L.w+';'+(L.stretch?'font-stretch:'+L.stretch+';':'')+(L.up?'text-transform:uppercase;':'')+'">'+L.name+'</b><small>'+L.info+'</small></button>';
+  }).join('');
+  $('bopts').innerHTML = BFONTS.map(function(F){
+    return '<button type="button" class="opt" data-bfont="'+F.id+'"><b style="font-family:'+F.font.replace(/"/g, "'")+',sans-serif;font-weight:'+F.w+';font-stretch:'+F.stretch+';text-transform:uppercase">'+F.name+'</b><small>'+F.info+'</small></button>';
+  }).join('');
+  $('bopts').addEventListener('click', function(e){
+    var b = e.target.closest('.opt'); if (!b) return;
+    bfont = b.getAttribute('data-bfont'); paint(); safeSet('nr-bfont', bfont);
+    if (document.fonts && document.fonts.load) document.fonts.load(bfontById(bfont).w + ' 40px ' + bfontById(bfont).font).then(function(){ paint(); }).catch(function(){});
+    if (db && state.canEdit) db.doc('settings/site').set({ look: look, bfont: bfont }).catch(function(){});
+  });
+  paint();
+  $('picker-btn').addEventListener('click', function(){ var p = $('ppanel'); p.hidden = !p.hidden; this.setAttribute('aria-expanded', String(!p.hidden)); });
+  $('opts').addEventListener('click', function(e){
+    var b = e.target.closest('.opt'); if (!b) return;
+    look = b.getAttribute('data-look'); paint(); safeSet('nr-look', look);
+    if (db && state.canEdit) db.doc('settings/site').set({ look: look, bfont: bfont }).catch(function(){});
+  });
+
+  /* ---------- hero letters ---------- */
+  var idx = 0;
+  document.querySelectorAll('#hero-name .w').forEach(function(w){
+    var t = w.textContent; w.textContent = '';
+    t.split('').forEach(function(ch){ var e = document.createElement('span'); e.className = 'ch'; e.textContent = ch; e.style.setProperty('--i', idx++); w.appendChild(e); });
+  });
+
+  /* name always fills the width exactly, in every look */
+  function fitName(){
+    var h = $('hero-name'); if (!h || h.offsetParent === null) return;
+    h.style.fontSize = '100px';
+    var avail = h.parentNode.clientWidth - parseFloat(getComputedStyle(h.parentNode).paddingLeft) - parseFloat(getComputedStyle(h.parentNode).paddingRight);
+    var wide = 0; h.querySelectorAll('.w').forEach(function(w){ wide = Math.max(wide, w.getBoundingClientRect().width); });
+    var ws = h.querySelectorAll('.w');
+    var single = Math.abs(ws[0].getBoundingClientRect().top - ws[ws.length-1].getBoundingClientRect().top) < 2;
+    var need = single ? ws[ws.length-1].getBoundingClientRect().right - ws[0].getBoundingClientRect().left : wide;
+    if (need > 0) h.style.fontSize = Math.min(220, Math.floor(100 * avail / need * .99)) + 'px';
+  }
+  var _paint = paint; paint = function(){ _paint(); fitName(); };
+  window.addEventListener('resize', fitName);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitName);
+  if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', fitName);
+  fitName();
+
+  /* nav sits on the photo, turns solid below it */
+  function navState(){ var n = document.querySelector('.nav.pub'), h = document.querySelector('.hero'); if (n && h) n.classList.toggle('over', window.scrollY < h.offsetHeight - 70); }
+  window.addEventListener('scroll', navState, { passive: true });
+  navState();
+
+  /* ---------- routing ---------- */
+  function route(){
+    var h = location.hash, intern = h === '#intern';
+    $('view-public').hidden = intern;
+    $('view-intern').hidden = !intern;
+    $('picker').hidden = true;
+    if (intern){ window.scrollTo(0,0); renderIntern(); }
+    if (h.indexOf('#show-') === 0) openDetail(h.slice(6)); else closeDetail();
+  }
+  window.addEventListener('hashchange', route);
+
+  /* ---------- public ---------- */
+  function venueById(id){ for (var i=0;i<state.venues.length;i++) if (state.venues[i].id===id) return state.venues[i]; return null; }
+  function artistFor(title){ var n = norm(title); for (var i=0;i<state.artists.length;i++) if (norm(state.artists[i].name) === n) return state.artists[i]; return null; }
+  function photoFor(title){ var a = artistFor(title); return a && a.photoId ? '/_blob/' + a.photoId : ''; }
+  function upcomingPublic(){
+    var t = todayStr();
+    return state.shows.filter(function(s){ return s.public && s.status !== 'abgesagt' && s.date >= t; })
+      .sort(function(a,b){ return (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')); });
+  }
+  function renderTicker(list){
+    var html = list.length ? list.map(function(s){ var v = venueById(s.venueId); return '<span><i>'+ddmm(s.date)+'</i>'+esc(s.title)+(v && v.city ? ', '+esc(v.city) : '')+'</span>'; }).join('')
+      : '<span>Booking offen für 2027</span><span>Live, Studio, Tour</span>';
+    var n = Math.max(1, list.length || 2), reps = Math.max(2, Math.ceil(8 / n));
+    var half = new Array(reps + 1).join(html);
+    $('ticker').innerHTML = half + half;
+  }
+  /* ---------- videos ---------- */
+  var COVERS = ['img/g6.jpg','img/g1.jpg','img/g4.jpg','img/g2.jpg','img/g5.jpg','img/g3.jpg'];
+  function vidInfo(url){
+    var u = safeUrl(url); if (!u) return null;
+    if (/youtube\.com|youtu\.be/i.test(u)) return { platform: 'YouTube', url: u };
+    if (/instagram\.com/i.test(u)) return { platform: 'Instagram', url: u };
+    return { platform: 'Video', url: u };
+  }
+  function sortedVideos(){ return state.videos.slice().sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); }); }
+  function ytId(u){ var m = String(u).match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/|\/live\/)([\w-]{11})/); return m ? m[1] : ''; }
+  $('public-videos').addEventListener('click', function(e){
+    var a = e.target.closest('.vid'); if (!a || !window.NR_SITE) return;
+    var id = ytId(a.getAttribute('href')); if (!id) return;
+    e.preventDefault();
+    var c = a.querySelector('.cover'); if (c.querySelector('iframe')) return;
+    c.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0" title="'+esc(a.querySelector('b').textContent)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;z-index:2"></iframe>';
+  });
+  function renderVideos(){
+    var list = sortedVideos(), box = $('public-videos');
+    if (!list.length){ box.innerHTML = '<div class="empty" style="grid-column:1/-1">Bald gibt es hier Videos.</div>'; return; }
+    box.innerHTML = list.map(function(v, i){
+      var info = vidInfo(v.url); if (!info) return '';
+      var cover = v.coverId ? '/_blob/' + v.coverId : COVERS[i % COVERS.length];
+      return '<a class="vid'+(i === 0 ? ' first' : '')+'" href="'+esc(info.url)+'" target="_blank" rel="noopener"><div class="cover"><img src="'+esc(cover)+'" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></div><div class="vt"><b>'+esc(v.title || info.platform + '-Video')+'</b><span>'+info.platform+' ↗</span></div></a>';
+    }).join('');
+  }
+  function renderVideoAdmin(){
+    var list = sortedVideos();
+    if (!list.length){ $('video-list').innerHTML = '<div class="iempty">Noch keine Videos. Füge unten einen Link ein.</div>'; return; }
+    $('video-list').innerHTML = list.map(function(v){
+      var info = vidInfo(v.url) || { platform: '?' };
+      return '<div class="arow">' + (v.coverId ? '<img class="thumb" src="/_blob/'+esc(v.coverId)+'" alt="">' : '<span class="thumb ph">▶</span>')
+        + '<div style="min-width:0"><b>'+esc(v.title || 'Ohne Titel')+'</b><div class="label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+info.platform+' · '+esc(v.url)+'</div></div>'
+        + '<div class="rowact">' + (assets ? '<label class="linkbtn filebtn">Titelbild<input type="file" accept="image/jpeg,image/png,image/webp" data-cover-for="'+esc(v.id)+'"></label>' : '')
+        + '<button class="linkbtn danger" type="button" data-vdel="'+esc(v.id)+'">'+(state.confirmVid === v.id ? 'Wirklich löschen?' : 'Löschen')+'</button></div></div>';
+    }).join('');
+  }
+  $('vd-file').addEventListener('change', function(){ $('video-msg').textContent = this.files[0] ? 'Titelbild: ' + this.files[0].name : ''; });
+  $('video-form').addEventListener('submit', function(e){
+    e.preventDefault(); if (!db) return;
+    var url = $('vd-url').value.trim();
+    if (!vidInfo(url)){ $('video-msg').textContent = 'Bitte einen vollständigen Link mit https:// einfügen.'; return; }
+    var f = $('vd-file').files[0], btn = $('vd-save'); btn.disabled = true; $('video-msg').textContent = 'Speichere …';
+    (f ? upload(f) : Promise.resolve('')).then(function(cid){
+      return db.collection('videos').add({ url: url, title: $('vd-title').value.trim(), coverId: cid || '', createdAt: new Date().toISOString() });
+    }).then(function(){ $('video-form').reset(); $('video-msg').textContent = 'Video gespeichert.'; })
+      .catch(function(err){ $('video-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); })
+      .then(function(){ btn.disabled = false; });
+  });
+  $('video-list').addEventListener('change', function(e){
+    var inp = e.target.closest('[data-cover-for]'); if (!inp || !inp.files[0]) return;
+    var id = inp.getAttribute('data-cover-for'); $('video-msg').textContent = 'Lade Titelbild hoch …';
+    upload(inp.files[0]).then(function(cid){ return db.doc('videos/'+id).update({ coverId: cid }); })
+      .then(function(){ $('video-msg').textContent = 'Titelbild aktualisiert.'; })
+      .catch(function(err){ $('video-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); });
+  });
+  $('video-list').addEventListener('click', function(e){
+    var del = e.target.closest('[data-vdel]'); if (!del) return;
+    var id = del.getAttribute('data-vdel');
+    if (state.confirmVid !== id){ state.confirmVid = id; renderVideoAdmin(); return; }
+    state.confirmVid = null;
+    db.doc('videos/'+id).delete().catch(function(err){ $('video-msg').textContent = 'Löschen hat nicht geklappt: ' + (err && err.message || err); });
+  });
+
+  /* ---------- photos ---------- */
+  var BUILTIN = [
+    { src: 'img/g1.jpg', alt: 'Niclas Rotermund am roten Keyboard im warmen Licht', pos: '62% 50%' },
+    { src: 'img/g2.jpg', alt: 'Niclas Rotermund am Keyboard in orangem Licht' },
+    { src: 'img/g3.jpg', alt: 'Niclas Rotermund am Keyboard im violetten Licht' },
+    { src: 'img/g4.jpg', alt: 'Niclas Rotermund an Keys und Gesang vor rotem Banner', pos: '40% 50%' },
+    { src: 'img/g5.jpg', alt: 'Schlagzeug im roten Bühnenlicht' },
+    { src: 'img/g6.jpg', alt: 'Band von hinten vor dem Publikum' },
+    { src: 'img/g7.jpg', alt: 'Hände auf dem Keyboard', pos: '60% 50%' },
+    { src: 'img/g8.jpg', alt: 'Band mit dem Publikum nach der Show' }
+  ];
+  function photoSrc(p){ return p.blob ? '/_blob/' + p.blob : p.src; }
+  function galleryList(){
+    if (!state.gallery.init) return BUILTIN.map(function(b, i){ return Object.assign({ id: 'b' + i, order: i }, b); });
+    return state.photos.slice().sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+  }
+  function renderGallery(){
+    var list = galleryList();
+    $('gal').innerHTML = list.length ? list.map(function(p){
+      return '<figure><img src="'+esc(photoSrc(p))+'" alt="'+esc(p.alt || 'Niclas Rotermund live')+'" loading="lazy"'+(p.pos ? ' style="object-position:'+esc(p.pos)+'"' : '')+'></figure>';
+    }).join('') : '';
+    var credits = []; list.forEach(function(p){ if (p.credit && credits.indexOf(p.credit) < 0) credits.push(p.credit); });
+    $('credit').hidden = !credits.length; $('credit').textContent = credits.length ? 'Fotos © ' + credits.join(', ') : '';
+    var hd = state.gallery.header, img = $('hero-img');
+    var want = hd ? (hd.indexOf('img/') === 0 ? hd : '/_blob/' + hd) : 'img/header.jpg';
+    if (img.getAttribute('src') !== want){ img.src = want; img.style.objectPosition = hd ? '50% 40%' : '42% 40%'; }
+  }
+  function renderPhotoAdmin(){
+    var list = galleryList(), hd = state.gallery.header || '';
+    $('photo-list').innerHTML = list.length ? list.map(function(p, i){
+      var key = p.blob || p.src, isHead = hd ? hd === key : p.src === 'img/header.jpg';
+      return '<div class="pcell"><img src="'+esc(photoSrc(p))+'" alt="">' + (isHead ? '<span class="badge">Startbild</span>' : '')
+        + '<div class="pact">' + (i > 0 ? '<button class="linkbtn" type="button" data-pfront="'+esc(p.id)+'">Nach vorne</button>' : '')
+        + (isHead ? '' : '<button class="linkbtn" type="button" data-phead="'+esc(key)+'">Als Startbild</button>')
+        + '<button class="linkbtn danger" type="button" data-pdel="'+esc(p.id)+'">'+(state.confirmPhoto === p.id ? 'Wirklich?' : 'Entfernen')+'</button></div></div>';
+    }).join('') : '<div class="iempty" style="grid-column:1/-1">Keine Fotos in der Galerie. Lade unten neue hoch.</div>';
+  }
+  // the first change copies the built-in photos into the database, so they can be removed or reordered too
+  function seedGallery(){
+    if (state.gallery.init) return Promise.resolve();
+    var writes = BUILTIN.map(function(b, i){ return db.doc('photos/b' + i).set({ src: b.src, alt: b.alt, pos: b.pos || '', order: i, credit: '' }); });
+    return Promise.all(writes).then(function(){ return db.doc('settings/gallery').set(Object.assign({}, state.gallery, { init: true })); })
+      .then(function(){ state.gallery.init = true; });
+  }
+  function photoErr(err){ $('photo-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); }
+  $('ph-file').addEventListener('change', function(){ var n = this.files.length; $('photo-msg').textContent = n ? n + (n === 1 ? ' Foto' : ' Fotos') + ' ausgewählt' : ''; });
+  $('photo-form').addEventListener('submit', function(e){
+    e.preventDefault(); if (!db) return;
+    var files = Array.prototype.slice.call($('ph-file').files); if (!files.length){ $('photo-msg').textContent = 'Bitte zuerst Fotos wählen.'; return; }
+    var credit = $('ph-credit').value.trim(), btn = $('ph-save'); btn.disabled = true;
+    var min = galleryList().reduce(function(m, p){ return Math.min(m, p.order || 0); }, 0), done = 0;
+    seedGallery().then(function(){
+      return files.reduce(function(chain, f, i){
+        return chain.then(function(){ $('photo-msg').textContent = 'Lade hoch … ' + (i + 1) + ' von ' + files.length; return upload(f); })
+          .then(function(id){ done++; return db.collection('photos').add({ blob: id, alt: 'Niclas Rotermund live', credit: credit, order: min - files.length + i, createdAt: new Date().toISOString() }); });
+      }, Promise.resolve());
+    }).then(function(){ $('photo-form').reset(); $('photo-msg').textContent = done + (done === 1 ? ' Foto' : ' Fotos') + ' hinzugefügt. Neue Fotos stehen vorne.'; })
+      .catch(photoErr).then(function(){ btn.disabled = false; });
+  });
+  $('photo-list').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b || !db) return;
+    if (b.hasAttribute('data-pdel')){
+      var id = b.getAttribute('data-pdel');
+      if (state.confirmPhoto !== id){ state.confirmPhoto = id; renderPhotoAdmin(); return; }
+      state.confirmPhoto = null;
+      seedGallery().then(function(){ return db.doc('photos/' + id).delete(); }).then(function(){ $('photo-msg').textContent = 'Foto entfernt.'; }).catch(photoErr);
+    } else if (b.hasAttribute('data-pfront')){
+      var fid = b.getAttribute('data-pfront'), min = galleryList()[0].order || 0;
+      seedGallery().then(function(){ return db.doc('photos/' + fid).update({ order: min - 1 }); }).catch(photoErr);
+    } else if (b.hasAttribute('data-phead')){
+      var key = b.getAttribute('data-phead');
+      db.doc('settings/gallery').set(Object.assign({}, state.gallery, { header: key })).then(function(){ $('photo-msg').textContent = 'Startbild geändert. Die Farben passen sich an.'; }).catch(photoErr);
+    }
+  });
+
+  function renderPublic(){
+    renderGallery();
+    if (!state.dbReady) return;
+    renderVideos();
+    var list = upcomingPublic(), box = $('public-shows');
+    renderTicker(list);
+    if (!list.length){ box.innerHTML = '<div class="empty">Gerade stehen keine Termine an.</div>'; return; }
+    box.innerHTML = '<ul class="shows">' + list.map(function(s){
+      var d = parseD(s.date), v = venueById(s.venueId);
+      var meta = [WD[d.getDay()], timeRange(s), v ? v.name + (v.city ? ', ' + v.city : '') : ''].filter(Boolean).join(' · ');
+      return '<li class="show"><a href="#show-'+esc(s.id)+'" data-photo="'+esc(photoFor(s.title))+'"><div class="d">'+ddmm(s.date)+'<small>'+d.getFullYear()+'</small></div>'
+        + '<div><h3>'+esc(s.title)+'</h3><p class="meta">'+esc(meta)+(s.seriesName && norm(s.seriesName) !== norm(s.title) ? ' · '+esc(s.seriesName) : '')+'</p></div>'
+        + '<span class="go">'+(safeUrl(s.ticketUrl) ? 'Tickets →' : 'Details →')+'</span></a></li>';
+    }).join('') + '</ul>';
+  }
+  /* hover photo */
+  var peek = $('peek'), peekImg = peek.querySelector('img');
+  $('public-shows').addEventListener('pointermove', function(e){
+    var a = e.target.closest('.show a');
+    if (!a || e.pointerType !== 'mouse' || !a.getAttribute('data-photo')){ peek.classList.remove('on'); return; }
+    if (peekImg.getAttribute('src') !== a.getAttribute('data-photo')) peekImg.src = a.getAttribute('data-photo');
+    peek.style.transform = 'translate(' + (e.clientX + 24) + 'px,' + (e.clientY - 150) + 'px)';
+    peek.classList.add('on');
+  });
+  $('public-shows').addEventListener('pointerleave', function(){ peek.classList.remove('on'); });
+
+  /* detail */
+  var lastScroll = 0;
+  function openDetail(id){
+    var s = state.shows.filter(function(x){ return x.id === id; })[0], el = $('detail');
+    if (!s){ if (state.dbReady) closeDetail(); return; }
+    if (el.hidden) lastScroll = window.scrollY;
+    var d = parseD(s.date), v = venueById(s.venueId), url = safeUrl(s.ticketUrl), ph = photoFor(s.title) || 'img/header.jpg';
+    var rows = [['Datum', WD[d.getDay()] + ', ' + d.getDate() + '. ' + MON[d.getMonth()] + ' ' + d.getFullYear()]];
+    if (s.start) rows.push(['Uhrzeit', timeRange(s)]);
+    if (v) rows.push(['Ort', [v.name, v.address, v.city].filter(Boolean).join(', ')]);
+    if (s.seriesName && norm(s.seriesName) !== norm(s.title)) rows.push(['Reihe', s.seriesName]);
+    var more = s.seriesId ? upcomingPublic().filter(function(x){ return x.seriesId === s.seriesId && x.id !== s.id; }) : [];
+    el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span><button class="close" type="button" id="detail-close">Schließen ✕</button></div>'
+      + '<div class="dgrid"><div class="dimg"><img src="'+esc(ph)+'" alt="'+esc(s.title)+'"></div><div class="dinfo">'
+      + '<p class="dd">'+ddmm(s.date)+d.getFullYear()+'</p><h1 class="disp">'+esc(s.title)+'</h1>'
+      + '<ul class="dlist">'+rows.map(function(r){ return '<li><span>'+esc(r[0])+'</span>'+esc(r[1])+'</li>'; }).join('')+'</ul>'
+      + (url ? '<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Tickets kaufen</a>' : '')
+      + '<div class="calrow"><span class="label">Zum Kalender hinzufügen</span><a href="'+esc(gcalUrl(s, v))+'" target="_blank" rel="noopener">Google</a><a href="#" data-ics="'+esc(s.id)+'">Apple</a><a href="'+esc(outlookUrl(s, v))+'" target="_blank" rel="noopener">Outlook</a><p class="calnote" id="calnote" hidden>In dieser Vorschau sind Datei-Downloads gesperrt. Auf der fertigen Website lädt hier die Kalenderdatei für iPhone und Mac.</p></div>'
+      + (more.length ? '<div class="more-dates"><p class="label" style="margin-bottom:8px">Weitere Termine</p>' + more.map(function(m){ var mv = venueById(m.venueId); return '<a href="#show-'+esc(m.id)+'"><span>'+ddmm(m.date)+m.date.slice(0,4)+'</span><span>'+esc(mv ? mv.city || mv.name : '')+' →</span></a>'; }).join('') + '</div>' : '')
+      + '</div></div></div>';
+    el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden';
+    $('detail-close').addEventListener('click', function(){ location.hash = 'termine'; });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-ics]'), function(a){ a.addEventListener('click', function(e){ e.preventDefault(); downloadIcs(s, v); var n = $('calnote'); if (n && window.claude && !window.NR_SITE) n.hidden = false; }); });
+  }
+  /* calendar export */
+  function calTimes(s){
+    var ds = s.date.replace(/-/g, '');
+    if (!s.start) { var n = parseD(s.date); n.setDate(n.getDate() + 1); var de = n.getFullYear() + ('0'+(n.getMonth()+1)).slice(-2) + ('0'+n.getDate()).slice(-2); return { allDay: true, a: ds, b: de }; }
+    var st = s.start.replace(':', '') + '00', endT = s.end, endD = s.date;
+    if (!endT) { var h = (parseInt(s.start, 10) + 2) % 24; endT = ('0'+h).slice(-2) + s.start.slice(2); }
+    if (endT <= s.start) { var x = parseD(s.date); x.setDate(x.getDate() + 1); endD = x.getFullYear() + '-' + ('0'+(x.getMonth()+1)).slice(-2) + '-' + ('0'+x.getDate()).slice(-2); }
+    return { allDay: false, a: ds + 'T' + st, b: endD.replace(/-/g, '') + 'T' + endT.replace(':', '') + '00' };
+  }
+  function calText(s, v){
+    return { title: s.title + ' · Niclas Rotermund', loc: v ? [v.name, v.address, v.city].filter(Boolean).join(', ') : '', desc: safeUrl(s.ticketUrl) ? 'Tickets: ' + s.ticketUrl : 'Niclas Rotermund live' };
+  }
+  function gcalUrl(s, v){
+    var t = calTimes(s), c = calText(s, v);
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(c.title) + '&dates=' + t.a + '/' + t.b + '&ctz=Europe/Berlin&location=' + encodeURIComponent(c.loc) + '&details=' + encodeURIComponent(c.desc);
+  }
+  function berlinOff(ymd){
+    var y = +ymd.slice(0,4), m = +ymd.slice(4,6), d = +ymd.slice(6,8);
+    function lastSun(mo){ var x = new Date(Date.UTC(y, mo, 31)); return 31 - x.getUTCDay(); }
+    var summer = (m > 3 && m < 10) || (m === 3 && d >= lastSun(2)) || (m === 10 && d < lastSun(9));
+    return summer ? '+02:00' : '+01:00';
+  }
+  function isoOf(c){ var ymd = c.slice(0,8); return ymd.slice(0,4)+'-'+ymd.slice(4,6)+'-'+ymd.slice(6,8) + (c.length > 8 ? 'T'+c.slice(9,11)+':'+c.slice(11,13)+':00'+berlinOff(ymd) : ''); }
+  function outlookUrl(s, v){
+    var t = calTimes(s), c = calText(s, v);
+    return 'https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=' + encodeURIComponent(c.title) + '&startdt=' + encodeURIComponent(isoOf(t.a)) + '&enddt=' + encodeURIComponent(isoOf(t.b)) + (t.allDay ? '&allday=true' : '') + '&location=' + encodeURIComponent(c.loc) + '&body=' + encodeURIComponent(c.desc);
+  }
+  function icsEsc(x){ return String(x).replace(/\\/g, '\\\\').replace(/[,;]/g, '\\$&').replace(/\n/g, '\\n'); }
+  function downloadIcs(s, v){
+    var t = calTimes(s), c = calText(s, v), stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    var when = t.allDay ? ['DTSTART;VALUE=DATE:' + t.a, 'DTEND;VALUE=DATE:' + t.b] : ['DTSTART;TZID=Europe/Berlin:' + t.a, 'DTEND;TZID=Europe/Berlin:' + t.b];
+    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Niclas Rotermund//Termine//DE', 'BEGIN:VEVENT', 'UID:' + s.id + '@niclasrotermund.com', 'DTSTAMP:' + stamp].concat(when, ['SUMMARY:' + icsEsc(c.title), 'LOCATION:' + icsEsc(c.loc), 'DESCRIPTION:' + icsEsc(c.desc), 'END:VEVENT', 'END:VCALENDAR']).join('\r\n');
+    var a = document.createElement('a'), u = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+    a.href = u; a.download = (s.title.replace(/[^\wäöüÄÖÜß -]/g, '').trim() || 'termin') + '-' + s.date + '.ics';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); }, 2000);
+  }
+  function closeDetail(){
+    var el = $('detail'); if (el.hidden) return;
+    el.hidden = true; document.body.style.overflow = '';
+    if (location.hash === '#termine') window.scrollTo(0, lastScroll);
+  }
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !$('detail').hidden) location.hash = 'termine'; });
+
+  /* ---------- intern ---------- */
+  if (window.NR_SITE){
+    $('gate-login').addEventListener('submit', function(e){
+      e.preventDefault(); $('gl-msg').textContent = 'Melde an …';
+      window.NR_SITE.signIn($('gl-mail').value.trim(), $('gl-pw').value).then(function(){ location.reload(); })
+        .catch(function(err){ $('gl-msg').textContent = err && err.message || 'Das hat nicht geklappt.'; });
+    });
+    var out = function(e){ if (e) e.preventDefault(); window.NR_SITE.signOut().then(function(){ location.hash = 'start'; location.reload(); }); };
+    $('gate-out').addEventListener('click', out); $('out-link').addEventListener('click', out);
+    $('out-li').hidden = !window.NR_SITE.signedIn;
+  }
+  function renderIntern(){
+    if (location.hash !== '#intern') return;
+    if (window.NR_SITE) $('out-li').hidden = !window.NR_SITE.signedIn;
+    if (!state.canEdit){
+      $('intern-gate').hidden = false; $('intern-app').hidden = true;
+      var site = window.NR_SITE;
+      $('gate-text').textContent = site ? (site.signedIn ? 'Dieses Konto darf die Website nicht bearbeiten.' : 'Melde dich mit deinem Tourbuch-Konto an.')
+        : db ? 'Hier pflegst du Shows, Venues und Artists. Bearbeiten kannst nur du, Besucher sehen diesen Bereich nicht.' : 'Der interne Bereich braucht die Datenbank dieser Seite. Öffne die Seite angemeldet in Claude.';
+      $('gate-login').hidden = !(site && !site.signedIn);
+      $('gate-out').hidden = !(site && site.signedIn);
+      return;
+    }
+    $('intern-gate').hidden = true; $('intern-app').hidden = false;
+    renderStats(); renderShowTable(); renderVenueTable(); renderArtists(); renderVideoAdmin(); renderPhotoAdmin(); renderLists(); renderCal();
+  }
+  function fee(id){ var d = state.details[id]; return d && typeof d.fee === 'number' ? d.fee : null; }
+  function fmtEUR(n){ return n.toLocaleString('de-DE') + ' €'; }
+  function renderStats(){
+    var t = todayStr();
+    var up = state.shows.filter(function(s){ return s.date >= t && s.status !== 'abgesagt'; });
+    var open = state.shows.filter(function(s){ return s.date >= t && (s.status === 'anfrage' || s.status === 'option'); });
+    var conf = up.filter(function(s){ return s.status === 'bestaetigt'; });
+    var sum = conf.reduce(function(a,s){ return a + (fee(s.id) || 0); }, 0);
+    var unpaid = state.shows.filter(function(s){ return s.date < t && s.status === 'bestaetigt' && !(state.details[s.id] && state.details[s.id].paid); }).length;
+    $('stats').innerHTML =
+      '<div class="stat"><span class="label">Bestätigt, kommend</span><b>'+conf.length+'</b></div>'+
+      '<div class="stat"><span class="label">Offene Anfragen</span><b>'+open.length+'</b></div>'+
+      '<div class="stat"><span class="label">Gagen, kommend</span><b>'+fmtEUR(sum)+'</b></div>'+
+      '<div class="stat"><span class="label">Gespielt, unbezahlt</span><b>'+unpaid+'</b></div>';
+  }
+  function seriesShows(sid){ return state.shows.filter(function(x){ return x.seriesId === sid; }).sort(function(a,b){ return a.date.localeCompare(b.date); }); }
+  function seriesFlag(s){
+    if (!s.seriesId) return '';
+    var all = seriesShows(s.seriesId), pos = all.map(function(x){ return x.id; }).indexOf(s.id) + 1;
+    return '<span class="flag series">'+esc(s.seriesName || 'Reihe')+' '+pos+'/'+all.length+'</span>';
+  }
+  function renderShowTable(){
+    var t = todayStr(), f = state.filter;
+    var list = state.shows.filter(function(s){
+      if (f === 'kommend') return s.date >= t && s.status !== 'abgesagt';
+      if (f === 'anfragen') return s.date >= t && (s.status === 'anfrage' || s.status === 'option');
+      if (f === 'vergangen') return s.date < t;
+      return true;
+    }).sort(function(a,b){ return f === 'vergangen' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date); });
+    if (!list.length){ $('show-table').innerHTML = '<div class="iempty">Keine Shows in dieser Ansicht.</div>'; return; }
+    var rows = list.map(function(s){
+      var d = parseD(s.date), v = venueById(s.venueId), det = state.details[s.id] || {}, fe = fee(s.id);
+      return '<tr><td class="num"><b>'+ddmm(s.date)+d.getFullYear()+'</b><div class="sub">'+WDs[d.getDay()]+(s.start ? ' · '+esc(s.start) : '')+'</div></td>'
+        + '<td><b>'+esc(s.title)+'</b><div class="sub">'+(v ? esc(v.name)+(v.city ? ', '+esc(v.city) : '') : 'Venue fehlt')+'</div>'
+        + '<div class="flags">'+seriesFlag(s)+'<span class="flag'+(s.public?' on':'')+'">Web</span><span class="flag'+(s.ticketUrl?' on':'')+'">Tickets</span><span class="flag'+(det.contract?' on':'')+'">Vertrag</span><span class="flag'+(det.paid?' on':'')+'">Bezahlt</span></div></td>'
+        + '<td><span class="st '+esc(s.status)+'">'+esc(STATUS[s.status]||s.status)+'</span></td>'
+        + '<td class="num">'+(fe != null ? fmtEUR(fe) : '<span class="sub">–</span>')+'</td>'
+        + '<td><div class="rowact"><button class="linkbtn" type="button" data-edit="'+esc(s.id)+'">Bearbeiten</button>'
+        + '<button class="linkbtn danger" type="button" data-del="'+esc(s.id)+'">'+(state.confirmDel === s.id ? 'Wirklich löschen?' : 'Löschen')+'</button></div></td></tr>';
+    }).join('');
+    $('show-table').innerHTML = '<table><thead><tr><th>Datum</th><th>Show</th><th>Status</th><th>Gage</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+  function renderVenueTable(){
+    if (!state.venues.length){ $('venue-table').innerHTML = '<div class="iempty">Noch keine Venues. Trägst du bei einer Show einen neuen Ort ein, wird er hier gespeichert und beim nächsten Mal vorgeschlagen.</div>'; return; }
+    var t = todayStr();
+    var rows = state.venues.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'de'); }).map(function(v){
+      var played = state.shows.filter(function(s){ return s.venueId === v.id && s.status !== 'abgesagt'; });
+      var past = played.filter(function(s){ return s.date < t; }).map(function(s){ return s.date; }).sort();
+      var last = past.length ? ddmm(past[past.length-1]) + past[past.length-1].slice(0,4) : '–';
+      var c = state.details['venue-'+v.id] || {};
+      return '<tr><td><b>'+esc(v.name)+'</b><div class="sub">'+esc([v.address, v.city].filter(Boolean).join(', '))+'</div></td>'
+        + '<td>'+esc(c.contact||'')+'<div class="sub">'+esc(c.contactInfo||'')+'</div></td>'
+        + '<td class="num">'+played.length+'</td><td class="num">'+last+'</td></tr>';
+    }).join('');
+    $('venue-table').innerHTML = '<table><thead><tr><th>Venue</th><th>Kontakt</th><th>Shows</th><th>Zuletzt</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+  function renderArtists(){
+    var list = state.artists.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'de'); });
+    if (!list.length){ $('artist-list').innerHTML = '<div class="iempty">Noch keine Artists. Lege unten einen an und lade ein Foto hoch.</div>'; return; }
+    $('artist-list').innerHTML = list.map(function(a){
+      var n = state.shows.filter(function(s){ return norm(s.title) === norm(a.name); }).length;
+      return '<div class="arow">' + (a.photoId ? '<img class="thumb" src="/_blob/'+esc(a.photoId)+'" alt="">' : '<span class="thumb ph">+</span>')
+        + '<div><b>'+esc(a.name)+'</b><div class="label">'+n+' Show'+(n === 1 ? '' : 's')+'</div></div>'
+        + '<div class="rowact">' + (assets ? '<label class="linkbtn filebtn">Foto ändern<input type="file" accept="image/jpeg,image/png,image/webp" data-photo-for="'+esc(a.id)+'"></label>' : '')
+        + '<button class="linkbtn danger" type="button" data-adel="'+esc(a.id)+'">'+(state.confirmArtist === a.id ? 'Wirklich löschen?' : 'Löschen')+'</button></div></div>';
+    }).join('');
+  }
+  function renderLists(){
+    $('venue-list').innerHTML = state.venues.map(function(v){ return '<option value="'+esc(v.name)+'">'+esc(v.city||'')+'</option>'; }).join('');
+    $('artist-dl').innerHTML = state.artists.map(function(a){ return '<option value="'+esc(a.name)+'"></option>'; }).join('');
+    updateVenueHint();
+  }
+  function findVenue(name){ var n = norm(name); if (!n) return null; for (var i=0;i<state.venues.length;i++) if (norm(state.venues[i].name) === n) return state.venues[i]; return null; }
+  function updateVenueHint(){
+    var name = $('s-venue').value, v = findVenue(name), h = $('venue-hint');
+    if (!name.trim()){ h.textContent = ''; $('newvenue').hidden = true; return; }
+    if (v){
+      var n = state.shows.filter(function(s){ return s.venueId === v.id; }).length;
+      h.className = 'hint'; h.textContent = 'Bekannte Venue' + (v.city ? ' in ' + v.city : '') + (n ? ', schon ' + n + '× gebucht' : '');
+      $('newvenue').hidden = true;
+    } else { h.className = 'hint new'; h.textContent = 'Neue Venue. Bitte Ort ergänzen.'; $('newvenue').hidden = false; }
+  }
+  $('s-venue').addEventListener('input', updateVenueHint);
+
+  /* ---------- artists: upload ---------- */
+  function upload(file){
+    if (!assets) return Promise.reject({ message: 'Fotos hochladen geht nur, wenn du die Seite bearbeiten darfst.' });
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return Promise.reject({ message: 'Bitte ein JPG, PNG oder WebP wählen.' });
+    return assets.upload(file).then(function(r){ return r.id; });
+  }
+  $('a-file').addEventListener('change', function(){ $('artist-msg').textContent = this.files[0] ? 'Foto: ' + this.files[0].name : ''; });
+  $('artist-form').addEventListener('submit', function(e){
+    e.preventDefault(); if (!db) return;
+    var name = $('a-name').value.trim(); if (!name) return;
+    var f = $('a-file').files[0], btn = $('a-save'); btn.disabled = true; $('artist-msg').textContent = 'Speichere …';
+    (f ? upload(f) : Promise.resolve('')).then(function(pid){
+      return db.collection('artists').add({ name: name, photoId: pid || '' });
+    }).then(function(){ $('artist-form').reset(); $('artist-msg').textContent = 'Artist gespeichert.'; })
+      .catch(function(err){ $('artist-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); })
+      .then(function(){ btn.disabled = false; });
+  });
+  $('artist-list').addEventListener('change', function(e){
+    var inp = e.target.closest('[data-photo-for]'); if (!inp || !inp.files[0]) return;
+    var id = inp.getAttribute('data-photo-for'); $('artist-msg').textContent = 'Lade Foto hoch …';
+    upload(inp.files[0]).then(function(pid){ return db.doc('artists/'+id).update({ photoId: pid }); })
+      .then(function(){ $('artist-msg').textContent = 'Foto aktualisiert.'; })
+      .catch(function(err){ $('artist-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); });
+  });
+  $('artist-list').addEventListener('click', function(e){
+    var del = e.target.closest('[data-adel]'); if (!del) return;
+    var id = del.getAttribute('data-adel');
+    if (state.confirmArtist !== id){ state.confirmArtist = id; renderArtists(); return; }
+    state.confirmArtist = null;
+    db.doc('artists/'+id).delete().catch(function(err){ $('artist-msg').textContent = 'Löschen hat nicht geklappt: ' + (err && err.message || err); });
+  });
+
+  /* ---------- series calendar ---------- */
+  var sel = {}, calM = null;
+  function calBase(){ var d = $('s-date').value ? parseD($('s-date').value) : new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
+  function renderCal(){
+    if ($('series-box').hidden) return;
+    if (!calM) calM = calBase();
+    $('cal-title').textContent = MON[calM.getMonth()] + ' ' + calM.getFullYear();
+    var first = (calM.getDay() + 6) % 7, days = new Date(calM.getFullYear(), calM.getMonth() + 1, 0).getDate(), t = todayStr(), main = $('s-date').value;
+    var html = ['Mo','Di','Mi','Do','Fr','Sa','So'].map(function(w){ return '<span class="wd">'+w+'</span>'; }).join('');
+    for (var i = 0; i < first; i++) html += '<span></span>';
+    for (var d = 1; d <= days; d++){
+      var ds = fmt(new Date(calM.getFullYear(), calM.getMonth(), d));
+      var cls = ds === main ? 'main' : (sel.hasOwnProperty(ds) ? 'sel' : '') + (ds < t ? ' past' : '');
+      html += '<button type="button" class="'+cls+'" data-day="'+ds+'" aria-pressed="'+(sel.hasOwnProperty(ds) || ds === main)+'">'+d+'</button>';
+    }
+    $('cal-grid').innerHTML = html;
+    var keys = Object.keys(sel).sort();
+    $('series-rows').innerHTML = keys.map(function(k){
+      var dd = parseD(k);
+      return '<div class="srow"><span>'+WDs[dd.getDay()]+' '+ddmm(k)+k.slice(0,4)+'</span><input list="venue-list" data-venue-for="'+k+'" aria-label="Venue für '+ddmm(k)+'" placeholder="Venue (leer = wie oben)" value="'+esc(sel[k])+'"><button class="x" type="button" data-rm="'+k+'" aria-label="Entfernen">×</button></div>';
+    }).join('');
+    var n = keys.length + (main ? 1 : 0);
+    $('series-count').textContent = n > 1 ? n + ' Termine werden angelegt.' : '';
+  }
+  $('cal-grid').addEventListener('click', function(e){
+    var b = e.target.closest('[data-day]'); if (!b) return;
+    var ds = b.getAttribute('data-day');
+    if (ds === $('s-date').value) return;
+    if (sel.hasOwnProperty(ds)) delete sel[ds]; else sel[ds] = '';
+    renderCal();
+  });
+  $('series-rows').addEventListener('input', function(e){ var i = e.target.closest('[data-venue-for]'); if (i) sel[i.getAttribute('data-venue-for')] = i.value; });
+  $('series-rows').addEventListener('click', function(e){ var x = e.target.closest('[data-rm]'); if (x){ delete sel[x.getAttribute('data-rm')]; renderCal(); } });
+  $('cal-prev').addEventListener('click', function(){ calM = new Date(calM.getFullYear(), calM.getMonth() - 1, 1); renderCal(); });
+  $('cal-next').addEventListener('click', function(){ calM = new Date(calM.getFullYear(), calM.getMonth() + 1, 1); renderCal(); });
+  $('s-date').addEventListener('change', function(){ delete sel[this.value]; calM = calBase(); renderCal(); });
+  $('s-isseries').addEventListener('change', function(){
+    $('series-box').hidden = !this.checked;
+    if (this.checked){ if (!$('s-seriesname').value) $('s-seriesname').value = $('s-title').value; calM = calBase(); renderCal(); }
+  });
+
+  function resetForm(){
+    state.editing = null; $('show-form').reset(); $('editor-title').textContent = 'Neue Show';
+    $('s-status').value = 'anfrage'; $('form-msg').textContent = ''; updateVenueHint();
+    sel = {}; calM = null; $('series-box').hidden = true; $('series-new').hidden = false; $('series-edit').hidden = true;
+  }
+  function fillForm(id){
+    var s = state.shows.filter(function(x){ return x.id === id; })[0]; if (!s) return;
+    var det = state.details[id] || {}, v = venueById(s.venueId);
+    state.editing = id; $('editor-title').textContent = 'Bearbeiten';
+    $('s-title').value = s.title||''; $('s-date').value = s.date||''; $('s-start').value = s.start||''; $('s-end').value = s.end||'';
+    $('s-venue').value = v ? v.name : ''; $('s-tickets').value = s.ticketUrl||''; $('s-status').value = s.status||'anfrage';
+    $('s-public').checked = !!s.public; $('s-fee').value = det.fee != null ? det.fee : ''; $('s-contract').checked = !!det.contract; $('s-paid').checked = !!det.paid;
+    $('s-notes').value = det.notes||''; $('form-msg').textContent = ''; updateVenueHint();
+    $('series-new').hidden = true; $('series-box').hidden = true;
+    if (s.seriesId){
+      $('series-edit').hidden = false; $('s-applyall').checked = false;
+      $('series-edit-label').textContent = 'Reihe: ' + (s.seriesName || '') + ' · ' + seriesShows(s.seriesId).length + ' Termine';
+    } else { $('series-edit').hidden = true; }
+    $('editor').scrollIntoView({block:'start'});
+  }
+  $('editor-reset').addEventListener('click', resetForm);
+  $('new-show-btn').addEventListener('click', function(){ resetForm(); $('s-title').focus(); });
+
+  document.querySelector('.tabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-f]'); if (!b) return;
+    state.filter = b.getAttribute('data-f');
+    document.querySelectorAll('.tabs button').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    renderShowTable();
+  });
+  $('show-table').addEventListener('click', function(e){
+    var ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
+    if (ed) fillForm(ed.getAttribute('data-edit'));
+    if (del){
+      var id = del.getAttribute('data-del');
+      if (state.confirmDel !== id){ state.confirmDel = id; renderShowTable(); return; }
+      state.confirmDel = null;
+      Promise.all([db.doc('shows/'+id).delete(), db.doc('private/orga/details/'+id).delete()]).then(function(){ if (state.editing === id) resetForm(); }).catch(function(err){ $('form-msg').textContent = 'Löschen hat nicht geklappt: ' + (err && err.message || err); });
+    }
+  });
+
+  $('show-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    if (!db) return;
+    var btn = $('save-btn'); btn.disabled = true; $('form-msg').textContent = 'Speichere …';
+    var created = {};
+    function resolveVenue(name, main){
+      var v = findVenue(name); if (v) return Promise.resolve(v.id);
+      if (!name) return Promise.resolve(null);
+      var k = norm(name); if (created[k]) return Promise.resolve(created[k]);
+      var ref = db.collection('venues').doc(), vid = ref.id; created[k] = vid;
+      return ref.set({ name: name, city: main ? $('v-city').value.trim() : '', address: main ? $('v-address').value.trim() : '', createdAt: new Date().toISOString() })
+        .then(function(){ return main ? db.doc('private/orga/details/venue-'+vid).set({ contact: $('v-contact').value.trim(), contactInfo: $('v-contactmail').value.trim() }) : null; })
+        .then(function(){ return vid; });
+    }
+    var feeVal = $('s-fee').value === '' ? null : Number($('s-fee').value);
+    var common = { title: $('s-title').value.trim(), start: $('s-start').value, end: $('s-end').value, ticketUrl: $('s-tickets').value.trim(), status: $('s-status').value, public: $('s-public').checked };
+    var commonDet = { fee: feeVal, contract: $('s-contract').checked, notes: $('s-notes').value };
+    function writeShow(id, base, venueId, date, paid){
+      var show = Object.assign({}, base, common, { date: date, venueId: venueId, updatedAt: new Date().toISOString() });
+      var det = Object.assign({}, commonDet, { paid: paid });
+      return db.doc('shows/'+id).set(show).then(function(){ return db.doc('private/orga/details/'+id).set(det); });
+    }
+    var wasNew = !state.editing, count = 1;
+    var job = resolveVenue($('s-venue').value.trim(), true).then(function(mainVid){
+      if (state.editing){
+        var cur = state.shows.filter(function(x){ return x.id === state.editing; })[0] || {};
+        var keep = { seriesId: cur.seriesId || null, seriesName: cur.seriesName || '' };
+        var p = writeShow(state.editing, keep, mainVid, $('s-date').value, $('s-paid').checked);
+        if (cur.seriesId && $('s-applyall').checked){
+          seriesShows(cur.seriesId).forEach(function(o){
+            if (o.id === state.editing) return;
+            var od = state.details[o.id] || {};
+            p = p.then(function(){ return writeShow(o.id, keep, o.venueId || null, o.date, !!od.paid); });
+            count++;
+          });
+        }
+        return p;
+      }
+      var extra = $('s-isseries').checked ? Object.keys(sel).filter(function(k){ return k !== $('s-date').value; }).sort() : [];
+      if (!extra.length) return writeShow(db.collection('shows').doc().id, { seriesId: null, seriesName: '' }, mainVid, $('s-date').value, $('s-paid').checked);
+      var sref = db.collection('series').doc(), sname = $('s-seriesname').value.trim() || common.title;
+      var keepS = { seriesId: sref.id, seriesName: sname };
+      var dates = [{ date: $('s-date').value, venue: '' }].concat(extra.map(function(k){ return { date: k, venue: (sel[k] || '').trim() }; }));
+      count = dates.length;
+      var q = sref.set({ name: sname, createdAt: new Date().toISOString() });
+      dates.forEach(function(r){
+        q = q.then(function(){ return r.venue ? resolveVenue(r.venue, false) : mainVid; })
+             .then(function(vid){ return writeShow(db.collection('shows').doc().id, keepS, vid, r.date, $('s-paid').checked); });
+      });
+      return q;
+    });
+    job.then(function(){
+      resetForm(); $('form-msg').textContent = wasNew ? (count > 1 ? 'Reihe mit ' + count + ' Terminen angelegt.' : 'Show angelegt.') : (count > 1 ? count + ' Termine der Reihe aktualisiert.' : 'Änderungen gespeichert.');
+    }).catch(function(err){
+      $('form-msg').textContent = 'Speichern hat nicht geklappt: ' + (err && err.message || err);
+    }).then(function(){ btn.disabled = false; });
+  });
+
+  /* ---------- contact ---------- */
+  $('copy-btn').addEventListener('click', function(){
+    var btn = this, text = $('mail').textContent;
+    function done(){ btn.textContent = 'Kopiert'; setTimeout(function(){ btn.textContent = 'Adresse kopieren'; }, 1800); }
+    function fallback(){ var r = document.createRange(); r.selectNodeContents($('mail')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Markiert'; }
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch(err){ fallback(); }
+  });
+  $('contact-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    if (!window.NR_SITE){ $('contact-msg').textContent = 'Im Entwurf wird nichts verschickt. Auf der echten Seite landet die Anfrage in deinem Postfach.'; return; }
+    var name = $('c-name').value.trim(), mail = $('c-mail').value.trim(), msg = $('c-msg').value.trim();
+    if (!msg){ $('contact-msg').textContent = 'Schreib kurz, worum es geht.'; return; }
+    location.href = 'mailto:info@niclasrotermund.com?subject=' + encodeURIComponent('Anfrage' + (name ? ' von ' + name : '')) + '&body=' + encodeURIComponent(msg + (name || mail ? '\n\n' + [name, mail].filter(Boolean).join('\n') : ''));
+    $('contact-msg').textContent = 'Dein Mailprogramm öffnet sich mit der fertigen Nachricht.';
+  });
+
+  /* ---------- motion ---------- */
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    var lastY = window.scrollY, raf = null, tmo = null;
+    window.addEventListener('scroll', function(){
+      if (raf) return;
+      raf = requestAnimationFrame(function(){
+        raf = null; var y = window.scrollY, v = y - lastY, r = document.documentElement.style; lastY = y;
+        r.setProperty('--sy', Math.min(y, 1400));
+        r.setProperty('--sk', Math.max(-10, Math.min(10, v * .3)).toFixed(2) + 'deg');
+        clearTimeout(tmo); tmo = setTimeout(function(){ r.setProperty('--sk', '0deg'); }, 120);
+      });
+    }, { passive: true });
+  }
+
+  /* ---------- data ---------- */
+  function rerender(){ renderPublic(); renderIntern(); if (location.hash.indexOf('#show-') === 0) openDetail(location.hash.slice(6)); }
+  renderTicker([]);
+  route();
+  var timer = setTimeout(function(){ if (!state.dbReady) $('public-shows').innerHTML = '<div class="empty">Die Termine lassen sich gerade nicht laden.</div>'; }, 10000);
+
+  var api = window.claude && window.claude.use ? window.claude : null;
+  if (!api){ clearTimeout(timer); $('public-shows').innerHTML = '<div class="empty">Termine erscheinen hier, wenn die Seite in Claude geöffnet ist.</div>'; return; }
+  Promise.all([api.use('db'), api.use('user'), api.use('assets')]).then(function(r){
+    db = r[0]; user = r[1]; assets = r[2];
+    if (!db){ clearTimeout(timer); $('public-shows').innerHTML = '<div class="empty">Melde dich an, um die Termine zu sehen.</div>'; renderIntern(); return; }
+    state.canEdit = !!(user && user.canEdit && user.canEdit());
+    var got = { shows: false, venues: false, artists: false };
+    function ready(){ if (got.shows && got.venues && got.artists){ state.dbReady = true; clearTimeout(timer); } rerender(); }
+    function listen(coll, key){
+      db.collection(coll).onSnapshot(function(snap){
+        state[key] = snap.docs.map(function(d){ var o = Object.assign({}, d.data()); o.id = d.id; return o; });
+        if (!snap.metadata.fromCache) got[key] = true; ready();
+      }, function(){ got[key] = true; ready(); });
+    }
+    listen('shows', 'shows'); listen('venues', 'venues'); listen('artists', 'artists'); listen('videos', 'videos'); listen('photos', 'photos');
+    db.doc('settings/gallery').onSnapshot(function(snap){ state.gallery = (snap.exists && snap.data()) || {}; rerender(); }, function(){});
+    db.doc('settings/site').onSnapshot(function(snap){
+      var d = snap.exists ? snap.data() : null;
+      
+    }, function(){});
+    if (state.canEdit){
+      db.collection('private/orga/details').onSnapshot(function(snap){
+        var m = {}; snap.docs.forEach(function(d){ m[d.id] = d.data(); }); state.details = m; rerender();
+      }, function(){});
+    }
+  });
+})();
+</script>
+
+</body></html>

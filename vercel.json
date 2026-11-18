@@ -1,0 +1,6 @@
+{ "outputDirectory": "public", "buildCommand": "", "framework": null, "cleanUrls": true,
+  "rewrites": [{ "source": "/_blob/:path*", "destination": "https://uwuyxcrnzxohupzeesic.supabase.co/storage/v1/object/public/website/:path*" }],
+  "headers": [
+    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }] },
+    { "source": "/(img|fonts)/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] }
+  ] }
