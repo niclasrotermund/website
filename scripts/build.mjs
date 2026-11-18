@@ -12,7 +12,7 @@ const body = src
   .replace('<a href="#start">Datenschutz</a>', '<a href="/datenschutz">Datenschutz</a>');
 for (const must of ['href="/impressum"', 'href="/datenschutz"']) if (!body.includes(must)) throw new Error("Footer-Link fehlt: " + must);
 if (/fonts\.googleapis/.test(body)) throw new Error("Google Fonts noch eingebunden");
-const desc = "Niclas Rotermund, Schlagzeuger und Manager. Termine, Videos, Fotos und Booking.";
+const desc = "Niclas Rotermund, Schlagzeuger und Manager. Termine, Projekte, Videos, Fotos und Booking.";
 const head = `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Niclas Rotermund · Schlagzeuger und Manager</title>
