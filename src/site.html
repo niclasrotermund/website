@@ -319,6 +319,18 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 .gate p{color:var(--muted);margin-top:16px;max-width:48ch}
 .gate-login{max-width:420px;margin-top:32px}
 
+/* haptics: things give way under the finger and spring back */
+:root{--spring:cubic-bezier(.34,1.56,.64,1)}
+.btn,.pcard,.vid,.pn,.gal figure,.seg button,.calrow a,.copy-btn,#copy-btn{transition:transform .55s var(--spring),background .3s,color .3s,border-color .3s}
+.btn:active,.pcard:active,.vid:active,.pn:active,.gal figure:active,.seg button:active,.calrow a:active{transform:scale(.965);transition-duration:.12s}
+.show a{position:relative;transition:padding .4s var(--ease),transform .55s var(--spring)}
+.show a:active{transform:scale(.985);transition-duration:.12s}
+.show a::before{content:"";position:absolute;inset:0 -16px;border-radius:12px;background:var(--accent-soft);opacity:0;transform:scale(.97);transition:opacity .6s var(--ease),transform .6s var(--spring);pointer-events:none}
+.show a.hit::before{opacity:1;transform:none;transition-duration:.08s}
+.show .d,.show h3{transition:color .35s var(--ease),transform .5s var(--spring);transform-origin:left center}
+.show.focus .d{color:var(--accent)}
+.show.focus h3{transform:scale(1.025)}
+@media (hover:hover) and (pointer:fine){.show.focus .d{color:inherit}.show.focus h3{transform:none}}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
@@ -1435,6 +1447,26 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 
   /* ---------- motion ---------- */
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    // tap: a short glow under the finger, plus a tiny vibration where the phone supports it (Android)
+    var buzz = function(ms){ try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(ms); } catch(e){} };
+    document.addEventListener('pointerdown', function(e){
+      var a = e.target.closest('.show a'); if (a){ a.classList.add('hit'); setTimeout(function(){ a.classList.remove('hit'); }, 220); }
+      if (e.pointerType === 'touch' && e.target.closest('a,button,.pcard,.vid')) buzz(6);
+    }, { passive: true });
+    // scroll: on phones the show rows click into place like a dial as they pass the middle of the screen
+    if (window.IntersectionObserver && matchMedia('(pointer:coarse)').matches){
+      var current = null;
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if (!en.isIntersecting || en.target === current) return;
+          if (current) current.classList.remove('focus');
+          current = en.target; current.classList.add('focus'); buzz(3);
+        });
+      }, { rootMargin: '-48% 0px -48% 0px' });
+      var watch = function(){ io.disconnect(); current = null; document.querySelectorAll('#public-shows .show').forEach(function(li){ io.observe(li); }); };
+      new MutationObserver(watch).observe($('public-shows'), { childList: true, subtree: false });
+      watch();
+    }
     var lastY = window.scrollY, raf = null, tmo = null;
     window.addEventListener('scroll', function(){
       if (raf) return;
