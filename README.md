@@ -43,7 +43,7 @@ Die Website nutzt **dieselbe Supabase-Datenbank wie das Tourbuch**, aber eine ei
 | | Entwurf (claude.ai) | Echte Seite |
 |---|---|---|
 | YouTube | öffnet in neuem Tab | spielt direkt auf der Seite (erst nach Klick, über youtube-nocookie) |
-| Instagram | öffnet in neuem Tab | öffnet in neuem Tab |
+| Instagram | öffnet in neuem Tab | spielt in einem Player über der Seite (erst nach Klick) |
 | Apple-Kalender | gesperrt | lädt die .ics-Datei |
 | Kontaktformular | verschickt nichts | öffnet das Mailprogramm mit fertiger Nachricht an info@ |
 | Schriften | Google Fonts | vom eigenen Server (DSGVO) |

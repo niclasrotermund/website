@@ -127,6 +127,14 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .calrow a:hover{color:var(--accent,inherit)}
 .calnote{flex-basis:100%;font-size:13px;color:var(--muted);margin:0}
 
+/* instagram player */
+.igbox{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity .35s var(--ease)}
+.igbox.on{opacity:1}
+.ig-in{position:relative;width:min(440px,92vw);height:min(780px,86vh);border-radius:16px;overflow:hidden;background:#fff;transform:scale(.94);transition:transform .5s var(--spring,ease)}
+.igbox.on .ig-in{transform:none}
+.ig-in iframe{width:100%;height:100%;border:0;display:block}
+.ig-x{position:absolute;right:10px;top:10px;z-index:2;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:15px;cursor:pointer}
+
 /* videos */
 .phead{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:20px}
 .phead h2{margin-bottom:0!important}
@@ -455,6 +463,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 </footer>
 
 <div class="peek" id="peek" aria-hidden="true"><img alt=""></div>
+<div class="igbox" id="igbox" hidden></div>
 <div class="detail" id="detail" hidden role="dialog" aria-modal="true" aria-label="Show-Details"></div>
 </div>
 
@@ -820,9 +829,24 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     return { platform: 'Video', url: u };
   }
   function sortedVideos(){ return state.videos.slice().sort(function(a,b){ return String(b.createdAt||'').localeCompare(String(a.createdAt||'')); }); }
+  function igCode(u){ var m = String(u).match(/instagram\.com\/(?:[\w.]+\/)?(p|reel|reels|tv)\/([\w-]+)/i); return m ? (m[1].toLowerCase() === 'p' ? 'p' : 'reel') + '/' + m[2] : ''; }
+  // Instagram: opens on click in a portrait player over the page (nothing loads from Instagram before the click)
+  function openIg(code, title){
+    var box = $('igbox');
+    box.innerHTML = '<div class="ig-in" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><button class="ig-x" type="button" aria-label="Schlie\u00dfen">\u2715</button>'
+      + '<iframe src="https://www.instagram.com/'+code+'/embed/" title="'+esc(title)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen scrolling="no"></iframe></div>';
+    box.hidden = false; document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function(){ box.classList.add('on'); });
+    box.querySelector('.ig-x').focus();
+  }
+  function closeIg(){ var box = $('igbox'); if (box.hidden) return; box.classList.remove('on'); box.hidden = true; box.innerHTML = ''; if ($('detail').hidden) document.body.style.overflow = ''; }
+  $('igbox').addEventListener('click', function(e){ if (e.target === this || e.target.closest('.ig-x')) closeIg(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeIg(); });
   function ytId(u){ var m = String(u).match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/|\/live\/)([\w-]{11})/); return m ? m[1] : ''; }
   $('public-videos').addEventListener('click', function(e){
     var a = e.target.closest('.vid'); if (!a || !window.NR_SITE) return;
+    var ig = igCode(a.getAttribute('href'));
+    if (ig){ e.preventDefault(); openIg(ig, a.querySelector('b').textContent); return; }
     var id = ytId(a.getAttribute('href')); if (!id) return;
     e.preventDefault();
     var c = a.querySelector('.cover'); if (c.querySelector('iframe')) return;
@@ -834,7 +858,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     box.innerHTML = list.map(function(v, i){
       var info = vidInfo(v.url); if (!info) return '';
       var cover = v.coverId ? '/_blob/' + v.coverId : COVERS[i % COVERS.length];
-      return '<a class="vid'+(i === 0 ? ' first' : '')+'" href="'+esc(info.url)+'" target="_blank" rel="noopener"><div class="cover"><img src="'+esc(cover)+'" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></div><div class="vt"><b>'+esc(v.title || info.platform + '-Video')+'</b><span>'+info.platform+' ↗</span></div></a>';
+      return '<a class="vid'+(i === 0 ? ' first' : '')+'" href="'+esc(info.url)+'" target="_blank" rel="noopener"><div class="cover"><img src="'+esc(cover)+'" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></div><div class="vt"><b>'+esc(v.title || info.platform + '-Video')+'</b><span>'+info.platform+(window.NR_SITE ? '' : ' ↗')+'</span></div></a>';
     }).join('');
   }
   function renderVideoAdmin(){
