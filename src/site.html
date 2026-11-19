@@ -87,7 +87,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .ticker span{display:inline-block;font-family:var(--d-font);font-weight:var(--d-weight);font-stretch:var(--d-stretch);text-transform:var(--d-case);font-size:18px;letter-spacing:0;padding-right:48px;transform:skewX(var(--sk,0deg));transition:transform .3s var(--ease)}
 .ticker i{font-style:normal;color:var(--accent);margin-right:12px;font-variant-numeric:tabular-nums}
 @keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.ticker:hover .track{animation-play-state:paused}
+@media (hover:hover) and (pointer:fine){.ticker:hover .track{animation-play-state:paused}}
 
 /* sections */
 .sec{padding-block:128px}
