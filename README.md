@@ -34,6 +34,12 @@ Die Website nutzt **dieselbe Supabase-Datenbank wie das Tourbuch**, aber eine ei
 3. Nach ein paar Minuten bis Stunden zeigt die Domain auf die neue Seite. HTTPS richtet Vercel selbst ein.
 4. Das alte WordPress bei Strato erst abschalten, wenn die neue Seite sicher läuft.
 
+## Seiten
+
+Die Startseite zeigt alles untereinander. Zusätzlich hat jeder Bereich eine eigene Adresse mit eigenem Headerbild: `/termine`, `/projekte`, `/videos`, `/medien`, `/kontakt` (siehe `rewrites` in `vercel.json`). Die Headerbilder tauschst du im internen Bereich unter **Seiten**.
+
+Die digitale Visitenkarte liegt als `public/kontakt.vcf`. Ändert sich Telefonnummer oder E-Mail, diese Datei und die Karte in `src/site.html` anpassen.
+
 ## Änderungen
 
 `src/site.html` bearbeiten, dann `node scripts/build.mjs` ausführen und beides committen. Vercel veröffentlicht jeden Push auf `main` automatisch.

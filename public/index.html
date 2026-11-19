@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="/platform.js"></script>
 </head><body>
+<script src="/vendor/qrcode.js"></script>
 <style>
 /* Layout: one column, few parts, lots of air. Name, photo, ticker, dates, one line of lettering, photos, contact.
    Five looks switch fonts and light/dark; colours always come from the header photo (set from JS). */
@@ -56,7 +57,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0}
 .nav ul a{font-size:14px;text-decoration:none;color:var(--muted);transition:color .25s}
 .nav ul a:hover,.nav ul a.on{color:var(--fg)}
-@media (max-width:520px){.nav ul{gap:16px}.nav .brand{font-size:14px}}
+.menu-btn{display:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
 
 /* hero */
 .hero{position:relative;height:clamp(600px,100svh,1000px);overflow:hidden;background:#0b0a09;color:#fff}
@@ -127,6 +130,19 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .calrow a:hover{color:var(--accent,inherit)}
 .calnote{flex-basis:100%;font-size:13px;color:var(--muted);margin:0}
 
+/* single pages: same layout, shorter header with the page name, only that section */
+.page-title{font-size:clamp(64px,13vw,200px);padding-bottom:44px;line-height:.86}
+main.pagemode .hero{height:clamp(380px,62svh,640px)}
+main.pagemode #hero-name,main.pagemode .hero .row{display:none}
+main.pagemode .sec:not(.cur),main.pagemode .lettering{display:none}
+main.pagemode:not([data-page="termine"]) .ticker{display:none}
+main.pagemode .sec.cur{padding-top:96px!important;border-top:0!important}
+main.pagemode .sec.cur>.wrap>h2,main.pagemode .sec.cur .phead h2{display:none}
+main.pagemode .sec.cur .phead{justify-content:flex-start}
+.nav.pub a.on{color:var(--fg)}
+.nav.pub.over a.on{color:#fff;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1px}
+@media (max-width:700px){main.pagemode .sec.cur{padding-top:64px!important}}
+
 /* instagram player */
 .igbox{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity .35s var(--ease)}
 .igbox.on{opacity:1}
@@ -183,6 +199,19 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .uform input:focus,.uform textarea:focus{outline:none;border-bottom-color:var(--fg)}
 .uform textarea{min-height:90px;resize:vertical}
 .uform .btn{justify-self:start}
+.vcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:center;margin-top:48px;padding:28px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,var(--surface),var(--bg))}
+.vc-name{font-size:clamp(30px,3vw,40px);line-height:1;margin-top:10px}
+.vc-role{color:var(--muted);margin-top:6px;font-size:15px}
+.vc-list{list-style:none;margin:20px 0 22px;padding:0;display:grid;gap:8px;font-size:15px}
+.vc-list li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px}
+.vc-list span{color:var(--muted)}
+.vc-list a{color:var(--fg);text-decoration:none;overflow-wrap:anywhere}
+.vc-list a:hover{color:var(--accent)}
+.vc-qr{display:grid;justify-items:center;gap:10px}
+.vc-qr>div{width:148px;height:148px;padding:10px;background:#fff;border-radius:12px}
+.vc-qr svg{display:block;width:100%;height:100%}
+.vc-qr small{color:var(--muted);font-size:12px}
+@media (max-width:560px),(pointer:coarse){.vcard{grid-template-columns:1fr}.vc-qr{display:none}}
 .socials{display:flex;gap:24px;margin-top:40px;font-size:14px}
 .socials a{text-decoration:none;color:var(--muted)}
 .socials a:hover{color:var(--fg)}
@@ -335,6 +364,75 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 .gate p{color:var(--muted);margin-top:16px;max-width:48ch}
 .gate-login{max-width:420px;margin-top:32px}
 
+/* ---------- phone ---------- */
+@media (max-width:760px){
+  .nav .brand{font-size:15px;position:relative;z-index:3}
+  .menu-btn{display:grid;place-content:center;gap:7px;position:relative;z-index:3;width:44px;height:44px;margin-right:-10px;border:0;background:none;cursor:pointer}
+  .menu-btn span{display:block;width:24px;height:1.5px;background:currentColor;transition:transform .5s var(--spring,ease)}
+  .nav.open .menu-btn span:first-child{transform:translateY(4.25px) rotate(45deg)}
+  .nav.open .menu-btn span:nth-child(2){transform:translateY(-4.25px) rotate(-45deg)}
+  .pub.over .menu-btn{color:#fff}
+  .nav.pub ul{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:96px 24px calc(48px + env(safe-area-inset-bottom,0px));background:var(--bg);opacity:0;visibility:hidden;transition:opacity .35s var(--ease),visibility 0s .35s}
+  .nav.pub.open ul{opacity:1;visibility:visible;transition:opacity .35s var(--ease)}
+  .nav.pub ul li{overflow:hidden}
+  .nav.pub ul a{display:block;color:var(--fg)!important;font-family:var(--d-font);font-weight:var(--d-weight);text-transform:var(--d-case);font-size:clamp(52px,16vw,84px);line-height:1.02;text-decoration:none!important;transform:translateY(105%);transition:transform .7s var(--ease)}
+  .nav.pub.open ul a{transform:none}
+  .nav.pub.open ul li:nth-child(2) a{transition-delay:.04s}.nav.pub.open ul li:nth-child(3) a{transition-delay:.08s}.nav.pub.open ul li:nth-child(4) a{transition-delay:.12s}.nav.pub.open ul li:nth-child(5) a{transition-delay:.16s}
+  .nav.pub ul a.on{color:var(--accent)!important}
+  .nav.pub.open{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .nav.pub.open .brand,.nav.pub.open .menu-btn{color:var(--fg)}
+  body.menu-open{overflow:hidden}
+
+  .wrap{padding-inline:20px}
+  .sec{padding-block:72px}
+  .sec h2{font-size:clamp(52px,15vw,72px);margin-bottom:28px}
+  .hero{height:100svh;min-height:560px}
+  .hero .row{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));margin-top:14px}
+  .hero .role{font-size:16px}
+  .ticker span{font-size:16px;padding-right:32px}
+
+  .show a{grid-template-columns:64px minmax(0,1fr);gap:4px 16px;padding:22px 0}
+  .show .d{font-size:22px}
+  .show h3{font-size:26px}
+  .show .meta{font-size:13px;line-height:1.45}
+  .show .go{font-size:13px;margin-top:6px}
+
+  .phead{flex-direction:column;align-items:flex-start;gap:18px}
+  #proj-filter{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  #proj-filter::-webkit-scrollbar{display:none}
+  #proj-filter button{white-space:nowrap}
+  .plead{font-size:15px;margin-bottom:28px}
+  /* projects: swipe sideways instead of a very long column */
+  .pgal{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:-20px;padding:0 20px 6px;scrollbar-width:none}
+  .pgal::-webkit-scrollbar{display:none}
+  .pgal .pcard{flex:0 0 78%;scroll-snap-align:start}
+  .pgal .empty{flex:1}
+  .pcard b{font-size:26px}
+
+  .vids{gap:24px}
+  .vid .play{width:56px;height:56px;margin:-28px 0 0 -28px}
+  .vid .play::before{border-left-width:14px;border-top-width:9px;border-bottom-width:9px;margin-left:4px}
+
+  .gal{grid-template-columns:1fr 1fr;gap:8px}
+  .gal img{aspect-ratio:3/4}
+  .gal figure:nth-child(3n+1){grid-column:1/-1}
+  .gal figure:nth-child(3n+1) img{aspect-ratio:4/3}
+  .gal figure:last-child:nth-child(3n+2){grid-column:1/-1}
+  .gal figure:last-child:nth-child(3n+2) img{aspect-ratio:4/3}
+
+  .lettering p{font-size:clamp(56px,17vw,96px)}
+
+  .mail{font-size:calc((100vw - 40px) / 12.6);white-space:nowrap;overflow-wrap:normal;margin-bottom:18px}
+  .contact-grid{margin-top:40px;gap:40px}
+  .contact-grid p[style]{font-size:17px!important}
+  .vcard{padding:22px;border-radius:18px;margin-top:36px}
+  .uform input,.uform textarea{font-size:16px}
+
+  .dgrid{padding-block:8px 64px}
+  .dinfo h1{font-size:clamp(48px,14vw,72px)}
+  .page-title{font-size:clamp(64px,19vw,110px);padding-bottom:32px}
+  @keyframes reveal{from{translate:0 24px}to{translate:0 0}}
+}
 /* haptics: things give way under the finger and spring back */
 :root{--spring:cubic-bezier(.34,1.56,.64,1)}
 .btn,.pcard,.vid,.pn,.gal figure,.seg button,.calrow a,.copy-btn,#copy-btn{transition:transform .55s var(--spring),background .3s,color .3s,border-color .3s}
@@ -358,13 +456,14 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 <div id="view-public">
 <nav class="nav pub over" aria-label="Hauptmenü">
   <div class="wrap">
-    <a class="brand" href="#start">Niclas Rotermund</a>
-    <ul>
-      <li><a href="#termine">Termine</a></li>
-      <li id="proj-nav"><a href="#projekte">Projekte</a></li>
-      <li><a href="#videos">Videos</a></li>
-      <li><a href="#medien">Medien</a></li>
-      <li><a href="#kontakt">Kontakt</a></li>
+    <a class="brand" href="#start" data-home>Niclas Rotermund</a>
+    <button class="menu-btn" type="button" id="menu-btn" aria-expanded="false" aria-controls="pub-menu"><span></span><span></span><b class="sr">Menü</b></button>
+    <ul id="pub-menu">
+      <li><a href="#termine" data-page="termine">Termine</a></li>
+      <li id="proj-nav"><a href="#projekte" data-page="projekte">Projekte</a></li>
+      <li><a href="#videos" data-page="videos">Videos</a></li>
+      <li><a href="#medien" data-page="medien">Medien</a></li>
+      <li><a href="#kontakt" data-page="kontakt">Kontakt</a></li>
     </ul>
   </div>
 </nav>
@@ -374,10 +473,11 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     <div class="photo"><img id="hero-img" src="img/header.jpg" alt="Niclas Rotermund am Schlagzeug auf der Bühne vor rotem Hintergrund" style="object-position:42% 40%"></div>
     <div class="hero-copy">
       <div class="wrap">
+        <h1 class="disp page-title" id="page-title" hidden></h1>
         <h1 class="disp" id="hero-name"><span class="w">Niclas</span> <span class="w">Rotermund</span></h1>
         <div class="row">
           <p class="role">Schlagzeuger und Manager</p>
-          <a class="btn" href="#kontakt">Booking anfragen</a>
+          <a class="btn" href="#kontakt" data-page="kontakt">Booking anfragen</a>
         </div>
       </div>
     </div>
@@ -442,6 +542,21 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
         <div>
           <p style="font-size:20px;max-width:26ch">Für Konzerte, Studio-Sessions und Management. Ich melde mich innerhalb von 48 Stunden.</p>
           <div class="socials"><a href="#kontakt">Instagram</a><a href="#kontakt">YouTube</a><a href="#kontakt">Spotify</a></div>
+          <div class="vcard" id="vcard">
+            <div class="vc-main">
+              <p class="label">Digitale Visitenkarte</p>
+              <p class="vc-name disp">Niclas Rotermund</p>
+              <p class="vc-role">Schlagzeuger und Manager</p>
+              <ul class="vc-list">
+                <li><span>Mobil</span><a href="tel:+4917660465781">+49 176 60465781</a></li>
+                <li><span>E-Mail</span><a href="mailto:info@niclasrotermund.com">info@niclasrotermund.com</a></li>
+                <li><span>Web</span><a href="https://www.niclasrotermund.com">niclasrotermund.com</a></li>
+              </ul>
+              <a class="btn sm" id="vc-save" href="/kontakt.vcf" download="Niclas-Rotermund.vcf">Ins Telefonbuch übernehmen</a>
+              <p class="msg" id="vc-msg" role="status"></p>
+            </div>
+            <div class="vc-qr"><div id="vc-qr" aria-label="QR-Code mit der Visitenkarte"></div><small>Mit der Handykamera scannen</small></div>
+          </div>
         </div>
         <form class="uform" id="contact-form">
           <label for="c-name">Name<input id="c-name" autocomplete="name"></label>
@@ -522,6 +637,11 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
             </div>
           </div>
           <div class="tablewrap" id="show-table"></div>
+        </div>
+        <div class="card" id="pages-card">
+          <div class="ctitle"><h2 class="disp">Seiten</h2><span class="label">Jede Seite hat eine eigene Adresse und ein eigenes Headerbild</span></div>
+          <div class="alist" id="pages-list"></div>
+          <p class="msg" id="pages-msg" role="status"></p>
         </div>
         <div class="card" id="proj-card">
           <div class="ctitle"><h2 class="disp">Projekte</h2><span class="label">Reiter „Projekte“ auf der Website</span></div>
@@ -773,7 +893,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 
   /* name always fills the width exactly, in every look */
   function fitName(){
-    var h = $('hero-name'); if (!h || h.offsetParent === null) return;
+    var h = $('hero-name'); if (!h || h.offsetParent === null || getComputedStyle(h).display === 'none') return;
     h.style.fontSize = '100px';
     var avail = h.parentNode.clientWidth - parseFloat(getComputedStyle(h.parentNode).paddingLeft) - parseFloat(getComputedStyle(h.parentNode).paddingRight);
     var wide = 0; h.querySelectorAll('.w').forEach(function(w){ wide = Math.max(wide, w.getBoundingClientRect().width); });
@@ -789,13 +909,83 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   fitName();
 
   /* nav sits on the photo, turns solid below it */
+  (function(){
+    var nav = document.querySelector('.nav.pub'), btn = $('menu-btn');
+    function setMenu(open){ nav.classList.toggle('open', open); document.body.classList.toggle('menu-open', open); btn.setAttribute('aria-expanded', String(open)); }
+    btn.addEventListener('click', function(){ setMenu(!nav.classList.contains('open')); });
+    $('pub-menu').addEventListener('click', function(e){ if (e.target.closest('a')) setMenu(false); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') setMenu(false); });
+    window.addEventListener('hashchange', function(){ setMenu(false); });
+  })();
   function navState(){ var n = document.querySelector('.nav.pub'), h = document.querySelector('.hero'); if (n && h) n.classList.toggle('over', window.scrollY < h.offsetHeight - 70); }
   window.addEventListener('scroll', navState, { passive: true });
   navState();
 
+  /* ---------- single pages ---------- */
+  var PAGES = { termine: { title: 'Termine', img: 'img/g5.jpg' }, projekte: { title: 'Projekte', img: 'img/g6.jpg' }, videos: { title: 'Videos', img: 'img/g1.jpg' }, medien: { title: 'Medien', img: 'img/g8.jpg' }, kontakt: { title: 'Kontakt', img: 'img/g4.jpg' } };
+  state.page = null;
+  // on the real site every page has its own address (/termine); in the preview it is #seite-termine
+  function pageHref(pg){ return window.NR_SITE ? '/' + pg : '#seite-' + pg; }
+  function homeHref(){ return window.NR_SITE ? '/' : '#start'; }
+  function pathPage(){ var x = location.pathname.replace(/\/+$/, '').split('/').pop(); return PAGES[x] ? x : null; }
+  function keySrc(k){ return k.indexOf('img/') === 0 ? k : '/_blob/' + k; }
+  function pageImg(pg){ var m = state.gallery.pages || {}; return m[pg] ? keySrc(m[pg]) : PAGES[pg].img; }
+  document.querySelectorAll('[data-page]').forEach(function(a){ a.setAttribute('href', pageHref(a.getAttribute('data-page'))); });
+  document.querySelectorAll('[data-home]').forEach(function(a){ a.setAttribute('href', homeHref()); });
+  function applyPage(){
+    var pg = state.page, main = $('start'), was = main.getAttribute('data-page') || '';
+    main.classList.toggle('pagemode', !!pg);
+    if (pg) main.setAttribute('data-page', pg); else main.removeAttribute('data-page');
+    Object.keys(PAGES).forEach(function(k){ var sec = $(k); if (sec) sec.classList.toggle('cur', k === pg); });
+    $('page-title').hidden = !pg; $('page-title').textContent = pg ? PAGES[pg].title : '';
+    document.querySelectorAll('.nav.pub [data-page]').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-page') === pg); });
+    document.title = pg ? PAGES[pg].title + ' · Niclas Rotermund' : (window.NR_SITE ? 'Niclas Rotermund · Schlagzeuger und Manager' : document.title);
+    setHero();
+    if ((pg || '') !== was){ window.scrollTo(0, 0); if (!pg) fitName(); }
+  }
+  function setHero(){
+    var img = $('hero-img'), hd = state.gallery.header, want, pos;
+    if (state.page){ want = pageImg(state.page); pos = '50% 40%'; }
+    else { want = hd ? keySrc(hd) : 'img/header.jpg'; pos = hd ? '50% 40%' : '42% 40%'; }
+    if (img.getAttribute('src') !== want){ img.src = want; img.style.objectPosition = pos; }
+  }
+  // closing a detail view goes back to where it was opened
+  function backTo(sec){
+    if (state.page){
+      if (window.NR_SITE){ history.pushState(null, '', location.pathname); route(); } else location.hash = 'seite-' + state.page;
+    } else location.hash = sec;
+  }
+  function renderPagesAdmin(){
+    var gal = galleryList();
+    $('pages-list').innerHTML = Object.keys(PAGES).map(function(k){
+      var cur = (state.gallery.pages || {})[k] || '';
+      return '<div class="arow"><img class="thumb" src="'+esc(pageImg(k))+'" alt=""><div style="min-width:0"><b>'+PAGES[k].title+'</b><div class="label">'+(window.NR_SITE ? 'niclasrotermund.com/' + k : 'eigene Seite')+' \u00b7 <a href="'+esc(pageHref(k))+'">ansehen</a></div></div>'
+        + '<div class="rowact"><select class="pgsel" data-pgsel="'+k+'" aria-label="Headerbild f\u00fcr '+PAGES[k].title+' aus der Galerie"><option value="">Aus Galerie \u2026</option>'
+        + gal.map(function(p, i){ var key = p.blob || p.src; return '<option value="'+esc(key)+'"'+(key === cur ? ' selected' : '')+'>Foto '+(i+1)+(p.credit ? ' ('+esc(p.credit)+')' : '')+'</option>'; }).join('') + '</select>'
+        + (assets ? '<label class="linkbtn filebtn">Hochladen<input type="file" accept="image/jpeg,image/png,image/webp" data-pgfile="'+k+'"></label>' : '')
+        + (cur ? '<button class="linkbtn" type="button" data-pgreset="'+k+'">Standard</button>' : '') + '</div></div>';
+    }).join('');
+  }
+  function setPageImg(k, key){
+    var pages = Object.assign({}, state.gallery.pages || {}); if (key) pages[k] = key; else delete pages[k];
+    return db.doc('settings/gallery').set(Object.assign({}, state.gallery, { pages: pages })).then(function(){ $('pages-msg').textContent = 'Headerbild f\u00fcr ' + PAGES[k].title + ' ge\u00e4ndert.'; })
+      .catch(function(err){ $('pages-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); });
+  }
+  $('pages-list').addEventListener('change', function(e){
+    var t = e.target; if (!db) return;
+    if (t.hasAttribute('data-pgsel') && t.value) setPageImg(t.getAttribute('data-pgsel'), t.value);
+    if (t.hasAttribute('data-pgfile') && t.files[0]){ var k = t.getAttribute('data-pgfile'); $('pages-msg').textContent = 'Lade hoch \u2026';
+      upload(t.files[0]).then(function(id){ return setPageImg(k, id); }).catch(function(err){ $('pages-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); }); }
+  });
+  $('pages-list').addEventListener('click', function(e){ var b = e.target.closest('[data-pgreset]'); if (b && db) setPageImg(b.getAttribute('data-pgreset'), ''); });
+
   /* ---------- routing ---------- */
   function route(){
     var h = location.hash, intern = h === '#intern';
+    if (window.NR_SITE) state.page = pathPage();
+    else if (h.indexOf('#seite-') === 0) state.page = PAGES[h.slice(7)] ? h.slice(7) : null;
+    else if (!/^#(show|projekt)-/.test(h)) state.page = null;
+    applyPage();
     $('view-public').hidden = intern;
     $('view-intern').hidden = !intern;
     $('picker').hidden = true;
@@ -922,9 +1112,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     }).join('') : '';
     var credits = []; list.forEach(function(p){ if (p.credit && credits.indexOf(p.credit) < 0) credits.push(p.credit); });
     $('credit').hidden = !credits.length; $('credit').textContent = credits.length ? 'Fotos © ' + credits.join(', ') : '';
-    var hd = state.gallery.header, img = $('hero-img');
-    var want = hd ? (hd.indexOf('img/') === 0 ? hd : '/_blob/' + hd) : 'img/header.jpg';
-    if (img.getAttribute('src') !== want){ img.src = want; img.style.objectPosition = hd ? '50% 40%' : '42% 40%'; }
+    setHero();
   }
   function renderPhotoAdmin(){
     var list = galleryList(), hd = state.gallery.header || '';
@@ -1015,7 +1203,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       + (upcoming.length ? '<div class="more-dates"><p class="label" style="margin-bottom:8px">Kommende Termine</p>' + upcoming.map(function(m){ var mv = venueById(m.venueId); return '<a href="#show-'+esc(m.id)+'"><span>'+ddmm(m.date)+m.date.slice(0,4)+'</span><span>'+esc(mv ? mv.city || mv.name : '')+' \u2192</span></a>'; }).join('') + '</div>' : '')
       + nav + '</div></div></div>';
     el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden';
-    $('detail-close').addEventListener('click', function(){ location.hash = 'projekte'; });
+    $('detail-close').addEventListener('click', function(){ backTo('projekte'); });
   }
   // internal
   function renderProjectAdmin(){
@@ -1124,7 +1312,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       + (more.length ? '<div class="more-dates"><p class="label" style="margin-bottom:8px">Weitere Termine</p>' + more.map(function(m){ var mv = venueById(m.venueId); return '<a href="#show-'+esc(m.id)+'"><span>'+ddmm(m.date)+m.date.slice(0,4)+'</span><span>'+esc(mv ? mv.city || mv.name : '')+' →</span></a>'; }).join('') + '</div>' : '')
       + nav + '</div></div></div>';
     el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden';
-    $('detail-close').addEventListener('click', function(){ location.hash = 'termine'; });
+    $('detail-close').addEventListener('click', function(){ backTo('termine'); });
     Array.prototype.forEach.call(el.querySelectorAll('[data-ics]'), function(a){ a.addEventListener('click', function(e){ e.preventDefault(); downloadIcs(s, v); var n = $('calnote'); if (n && window.claude && !window.NR_SITE) n.hidden = false; }); });
   }
   /* calendar export */
@@ -1166,11 +1354,11 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   function closeDetail(){
     var el = $('detail'); if (el.hidden) return;
     el.hidden = true; document.body.style.overflow = '';
-    if (location.hash === '#termine' || location.hash === '#projekte') window.scrollTo(0, lastScroll);
+    if (location.hash === '#termine' || location.hash === '#projekte' || state.page) window.scrollTo(0, lastScroll);
   }
   document.addEventListener('keydown', function(e){
     if ($('detail').hidden) return;
-    if (e.key === 'Escape') location.hash = location.hash.indexOf('#projekt-') === 0 ? 'projekte' : 'termine';
+    if (e.key === 'Escape') backTo(location.hash.indexOf('#projekt-') === 0 ? 'projekte' : 'termine');
     if (e.key === 'ArrowLeft' && $('d-prev')) location.hash = $('d-prev').getAttribute('href').slice(1);
     if (e.key === 'ArrowRight' && $('d-next')) location.hash = $('d-next').getAttribute('href').slice(1);
   });
@@ -1204,7 +1392,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       return;
     }
     $('intern-gate').hidden = true; $('intern-app').hidden = false;
-    renderStats(); renderShowTable(); renderVenueTable(); renderProjectAdmin(); renderArtists(); renderVideoAdmin(); renderPhotoAdmin(); renderLists(); renderCal();
+    renderStats(); renderShowTable(); renderVenueTable(); renderPagesAdmin(); renderProjectAdmin(); renderArtists(); renderVideoAdmin(); renderPhotoAdmin(); renderLists(); renderCal();
   }
   function fee(id){ var d = state.details[id]; return d && typeof d.fee === 'number' ? d.fee : null; }
   function fmtEUR(n){ return n.toLocaleString('de-DE') + ' €'; }
@@ -1468,6 +1656,19 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     function fallback(){ var r = document.createRange(); r.selectNodeContents($('mail')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Markiert'; }
     try { navigator.clipboard.writeText(text).then(done, fallback); } catch(err){ fallback(); }
   });
+  /* digital business card: QR code for desktop visitors, .vcf for phones */
+  var VCARD = ['BEGIN:VCARD','VERSION:3.0','N:Rotermund;Niclas;;;','FN:Niclas Rotermund','TITLE:Schlagzeuger und Manager','TEL;TYPE=CELL,VOICE:+49 176 60465781','EMAIL;TYPE=INTERNET,WORK:info@niclasrotermund.com','URL:https://www.niclasrotermund.com','END:VCARD'].join('\r\n');
+  function drawQr(){
+    if (!window.qrcode) return false;
+    try { if (qrcode.stringToBytesFuncs) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+      var q = qrcode(0, 'M'); q.addData(VCARD); q.make(); $('vc-qr').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); return true;
+    } catch(e){ return false; }
+  }
+  if (!drawQr()) window.addEventListener('load', function(){ if (!drawQr()) document.querySelector('.vc-qr').hidden = true; });
+  if (!window.NR_SITE){
+    // the preview cannot hand out files; on the real site the link downloads kontakt.vcf
+    $('vc-save').addEventListener('click', function(e){ e.preventDefault(); $('vc-msg').textContent = 'In der Vorschau gesperrt. Auf der fertigen Website öffnet sich hier direkt „Kontakt hinzufügen“.'; });
+  }
   $('contact-form').addEventListener('submit', function(e){
     e.preventDefault();
     if (!window.NR_SITE){ $('contact-msg').textContent = 'Im Entwurf wird nichts verschickt. Auf der echten Seite landet die Anfrage in deinem Postfach.'; return; }

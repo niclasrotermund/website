@@ -1,6 +1,53 @@
-{ "outputDirectory": "public", "buildCommand": "", "framework": null, "cleanUrls": true,
-  "rewrites": [{ "source": "/_blob/:path*", "destination": "https://uwuyxcrnzxohupzeesic.supabase.co/storage/v1/object/public/website/:path*" }],
+{
+  "outputDirectory": "public",
+  "buildCommand": "",
+  "framework": null,
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/_blob/:path*",
+      "destination": "https://uwuyxcrnzxohupzeesic.supabase.co/storage/v1/object/public/website/:path*"
+    },
+    {
+      "source": "/(termine|projekte|videos|medien|kontakt)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
-    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }] },
-    { "source": "/(img|fonts)/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] }
-  ] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/(img|fonts)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
+      ]
+    },
+    {
+      "source": "/kontakt.vcf",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/vcard; charset=utf-8"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"Niclas-Rotermund.vcf\""
+        }
+      ]
+    }
+  ]
+}

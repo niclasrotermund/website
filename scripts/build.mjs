@@ -9,7 +9,9 @@ const body = src
   .replace(/<link rel="preconnect"[^>]*>\n?/g, "")
   .replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>\n?/g, "")
   .replace('<a href="#start">Impressum</a>', '<a href="/impressum">Impressum</a>')
-  .replace('<a href="#start">Datenschutz</a>', '<a href="/datenschutz">Datenschutz</a>');
+  .replace('<a href="#start">Datenschutz</a>', '<a href="/datenschutz">Datenschutz</a>')
+  .replace(/<script src="https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/qrcode-generator\/[^"]+"><\/script>/, '<script src="/vendor/qrcode.js"></script>');
+if (/cdnjs\.cloudflare/.test(body)) throw new Error("Externes Script noch eingebunden");
 for (const must of ['href="/impressum"', 'href="/datenschutz"']) if (!body.includes(must)) throw new Error("Footer-Link fehlt: " + must);
 if (/fonts\.googleapis/.test(body)) throw new Error("Google Fonts noch eingebunden");
 const desc = "Niclas Rotermund, Schlagzeuger und Manager. Termine, Projekte, Videos, Fotos und Booking.";
