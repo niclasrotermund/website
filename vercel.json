@@ -10,7 +10,7 @@
     },
     {
       "source": "/(termine|projekte|videos|medien|kontakt)",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
   "headers": [
