@@ -343,6 +343,9 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 .dmap .ring{fill:none;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke;transform-box:fill-box;transform-origin:center;animation:mpulse 2.4s var(--ease) infinite}
 .dmap .cap{position:absolute;left:14px;bottom:12px;font-size:12px;color:var(--muted)}
 @media (max-width:700px){.emap{aspect-ratio:4/5}.emap-pop{left:12px!important;right:12px;bottom:12px;top:auto!important;width:auto;max-height:60%}}
+.impbox{margin:0 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:12px}
+.impbox summary{cursor:pointer;font-size:14px}
+.impbox textarea{width:100%;font:13px/1.5 ui-monospace,Menlo,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px}
 .more-shows{margin-top:32px;display:flex;justify-content:center}
 main:not([data-page="termine"]) .show.extra{display:none}
 main[data-page="termine"] .more-shows{display:none}
@@ -812,6 +815,11 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
         </div>
         <div class="card">
           <div class="ctitle"><h2 class="disp">Venues</h2><span class="label">Werden beim Speichern einer Show automatisch angelegt</span></div>
+          <details class="impbox"><summary>Shows importieren</summary>
+            <p class="sub" style="margin:10px 0">Text einfügen, den Claude für dich vorbereitet hat, und auf „Importieren“ klicken. Doppelte Shows werden übersprungen.</p>
+            <textarea id="imp-text" rows="6" spellcheck="false" placeholder='[{"title": "…", "date": "2024-05-19", "venue": "…", "city": "…"}]'></textarea>
+            <div class="rowact" style="justify-content:flex-start;margin-top:10px"><button class="btn sm" type="button" id="imp-btn">Importieren</button><span class="sub" id="imp-msg"></span></div>
+          </details>
           <div class="rowact" style="justify-content:flex-start;margin-bottom:12px"><button class="btn line sm" type="button" id="geo-btn">Orte für die Karte suchen</button><span class="sub" id="geo-msg"></span></div>
           <div class="tablewrap" id="venue-table"></div>
         </div>
@@ -864,6 +872,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
           </div>
 
           <label class="f" for="s-tickets">Ticket-Link<input id="s-tickets" type="url" placeholder="https://"></label>
+          <label class="f" for="s-role">Meine Rolle (optional, erscheint auf der Terminseite)<input id="s-role" placeholder="z. B. Musikalische Leitung, Schlagzeug"></label>
           <div class="row2">
             <label class="f" for="s-status">Status
               <select id="s-status">
@@ -1552,6 +1561,45 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       .then(function(j){ return j && j[0] ? { lat: +j[0].lat, lng: +j[0].lon, country: ((j[0].address || {}).country_code || '').toUpperCase() } : null; });
   }
   var wait = function(ms){ return new Promise(function(res){ setTimeout(res, ms); }); };
+
+  /* internal: import shows from a pasted list (prepared by Claude). Only works for the signed-in admin, like the form. */
+  $('imp-btn').addEventListener('click', function(){
+    if (!db) return;
+    var list, msg = $('imp-msg'), btn = this;
+    try { list = JSON.parse($('imp-text').value); if (!Array.isArray(list)) list = [list]; }
+    catch (e){ msg.textContent = 'Der Text ist nicht vollständig. Bitte komplett einfügen.'; return; }
+    var bad = list.filter(function(r){ return !r || !r.title || !/^\d{4}-\d{2}-\d{2}$/.test(r.date || '') || !r.venue; });
+    if (bad.length){ msg.textContent = bad.length + ' Einträge ohne Titel, Datum oder Venue.'; return; }
+    btn.disabled = true; msg.textContent = 'Importiere …';
+    var made = {}, series = {}, added = 0, skipped = 0, p = Promise.resolve();
+    list.forEach(function(r){
+      p = p.then(function(){
+        var v = findVenue(r.venue), key = norm(r.venue);
+        var vid = v ? v.id : made[key];
+        var getV = vid ? Promise.resolve(vid) : (function(){ var ref = db.collection('venues').doc(); made[key] = ref.id;
+          return ref.set({ name: r.venue.trim(), city: (r.city || '').trim(), address: (r.address || '').trim(), createdAt: new Date().toISOString() }).then(function(){ return ref.id; }); })();
+        return getV.then(function(venueId){
+          var dup = state.shows.some(function(s){ return s.date === r.date && s.venueId === venueId && norm(s.title) === norm(r.title); });
+          if (dup){ skipped++; return; }
+          var sp = Promise.resolve(null);
+          if (r.series){
+            if (!series[r.series]){ var sref = db.collection('series').doc(); series[r.series] = sref.id; sp = sref.set({ name: r.series, createdAt: new Date().toISOString() }).then(function(){ return sref.id; }); }
+            else sp = Promise.resolve(series[r.series]);
+          }
+          return sp.then(function(sid){
+            var ref = db.collection('shows').doc(), kind = SHOW_KINDS[r.kind] ? r.kind : 'konzert';
+            var show = { title: r.title.trim(), date: r.date, start: r.start || '', end: r.end || '', ticketUrl: '', status: r.status || 'bestaetigt', public: r.public !== false,
+              role: r.role || '', kind: kind, festival: kind === 'festival', festivalName: kind === 'festival' ? (r.festivalName || '') : '', seriesId: sid, seriesName: sid ? r.series : '', venueId: venueId, updatedAt: new Date().toISOString() };
+            added++;
+            return ref.set(show).then(function(){ return db.doc('private/orga/details/' + ref.id).set({ fee: null, contract: false, paid: false, notes: r.notes || '' }); });
+          });
+        });
+      });
+    });
+    p.then(function(){ msg.textContent = added + ' Shows importiert' + (skipped ? ', ' + skipped + ' schon vorhanden' : '') + '. Jetzt „Orte für die Karte suchen“ klicken.'; $('imp-text').value = ''; })
+     .catch(function(err){ msg.textContent = 'Hat nicht geklappt: ' + (err && err.message || err); })
+     .then(function(){ btn.disabled = false; });
+  });
   $('geo-btn').addEventListener('click', function(){
     if (!db) return;
     var todo = state.venues.filter(function(v){ return v.lat == null; }), btn = this, done = 0, found = 0;
@@ -1768,6 +1816,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var rows = [['Datum', WD[d.getDay()] + ', ' + d.getDate() + '. ' + MON[d.getMonth()] + ' ' + d.getFullYear()]];
     if (s.start) rows.push(['Uhrzeit', timeRange(s)]);
     rows.push(['Art', SHOW_KINDS[showKind(s)]]);
+    if (s.role) rows.push(['Meine Rolle', s.role]);
     if (isFest(s) && s.festivalName) rows.push(['Festival', s.festivalName]);
     if (v) rows.push(['Ort', [v.name, v.address, v.city && (v.name || '').toLowerCase().indexOf(v.city.toLowerCase()) < 0 ? v.city : ''].filter(Boolean).join(', ')]);
     if (s.seriesName && norm(s.seriesName) !== norm(s.title)) rows.push(['Reihe', s.seriesName]);
@@ -2047,6 +2096,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var s = state.shows.filter(function(x){ return x.id === id; })[0]; if (!s) return;
     var det = state.details[id] || {}, v = venueById(s.venueId);
     state.editing = id; $('editor-title').textContent = 'Bearbeiten';
+    $('s-role').value = s.role || '';
     $('s-title').value = s.title||''; $('s-date').value = s.date||''; $('s-start').value = s.start||''; $('s-end').value = s.end||'';
     $('s-venue').value = v ? v.name : ''; $('s-tickets').value = s.ticketUrl||''; $('s-status').value = s.status||'anfrage';
     $('s-kind').value = showKind(s); $('s-festname').value = s.festivalName || ''; $('s-festname-box').hidden = showKind(s) !== 'festival';
@@ -2102,7 +2152,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
         .then(function(){ return vid; });
     }
     var feeVal = $('s-fee').value === '' ? null : Number($('s-fee').value);
-    var common = { title: $('s-title').value.trim(), start: $('s-start').value, end: $('s-end').value, ticketUrl: $('s-tickets').value.trim(), status: $('s-status').value, public: $('s-public').checked, kind: $('s-kind').value, festival: $('s-kind').value === 'festival', festivalName: $('s-kind').value === 'festival' ? $('s-festname').value.trim() : '' };
+    var common = { title: $('s-title').value.trim(), start: $('s-start').value, end: $('s-end').value, ticketUrl: $('s-tickets').value.trim(), status: $('s-status').value, public: $('s-public').checked, role: $('s-role').value.trim(), kind: $('s-kind').value, festival: $('s-kind').value === 'festival', festivalName: $('s-kind').value === 'festival' ? $('s-festname').value.trim() : '' };
     var commonDet = { fee: feeVal, contract: $('s-contract').checked, notes: $('s-notes').value };
     function writeShow(id, base, venueId, date, paid){
       var show = Object.assign({}, base, common, { date: date, venueId: venueId, updatedAt: new Date().toISOString() });
