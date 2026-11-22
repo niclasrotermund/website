@@ -402,6 +402,25 @@ main[data-page="termine"] .more-shows{display:none}
 .vedit .vgrid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
 .vedit .vgrid input{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
 .vedit .rowact{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px}
+@media (max-width:700px){
+  #venue-table table,#venue-table tbody{display:block;min-width:0;width:100%}
+  #venue-table thead{display:none}
+  #venue-table tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  #venue-table td{display:block;border:0;padding:0;white-space:normal}
+  #venue-table td:first-child{flex:1 1 60%;min-width:0}
+  #venue-table td:last-child{order:-1;flex:none;margin-left:auto}
+  #venue-table td:first-child{order:-2}
+  #venue-table td:nth-child(2):empty,#venue-table td:nth-child(2):has(.sub:empty):not(:has(*:not(.sub))){display:none}
+  #venue-table td:nth-child(2){flex-basis:100%;font-size:14px}
+  #venue-table td:nth-child(3),#venue-table td:nth-child(4),#venue-table td:nth-child(5){font-size:13px;color:var(--muted)}
+  #venue-table td:nth-child(3)::before{content:"Shows: "}
+  #venue-table td:nth-child(4)::before{content:"Zuletzt: "}
+  #venue-table td:nth-child(5)::before{content:"Karte: "}
+  #venue-table tr.vedit{display:block}
+  #venue-table tr.vedit td{display:block;padding:12px}
+  #venue-table tr.vedit td::before{content:none}
+  .vedit .vgrid{grid-template-columns:1fr}
+}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:0 12px 10px 0;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:13px 12px 13px 0;border-bottom:1px solid var(--line);vertical-align:middle}
