@@ -824,7 +824,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
         <div class="card">
           <div class="ctitle"><h2 class="disp">Venues</h2><span class="label">Werden beim Speichern einer Show automatisch angelegt</span></div>
           <details class="impbox"><summary>Shows importieren</summary>
-            <p class="sub" style="margin:10px 0">Text einfügen, den Claude für dich vorbereitet hat, und auf „Importieren“ klicken. Doppelte Shows werden übersprungen.</p>
+            <p class="sub" style="margin:10px 0">Datei hochladen oder Text einfügen, den Claude für dich vorbereitet hat, dann auf „Importieren“ klicken. Doppelte Shows werden übersprungen.</p>
+            <label class="btn line sm filebtn" for="imp-file" style="margin-bottom:10px">Datei wählen<input id="imp-file" type="file" accept=".json,application/json,text/plain"></label>
             <textarea id="imp-text" rows="6" spellcheck="false" placeholder='[{"title": "…", "date": "2024-05-19", "venue": "…", "city": "…"}]'></textarea>
             <div class="rowact" style="justify-content:flex-start;margin-top:10px"><button class="btn sm" type="button" id="imp-btn">Importieren</button><span class="sub" id="imp-msg"></span></div>
           </details>
@@ -1571,6 +1572,16 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   var wait = function(ms){ return new Promise(function(res){ setTimeout(res, ms); }); };
 
   /* internal: import shows from a pasted list (prepared by Claude). Only works for the signed-in admin, like the form. */
+  $('imp-file').addEventListener('change', function(){
+    var f = this.files[0], msg = $('imp-msg'); if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      $('imp-text').value = String(rd.result || '');
+      try { var l = JSON.parse(rd.result); l = Array.isArray(l) ? l : [l]; msg.textContent = f.name + ': ' + l.length + (l.length === 1 ? ' Show' : ' Shows') + ' gefunden. Jetzt „Importieren“ klicken.'; }
+      catch (e){ msg.textContent = 'Diese Datei kann ich nicht lesen. Bitte die Datei von Claude nehmen.'; }
+    };
+    rd.readAsText(f); this.value = '';
+  });
   $('imp-btn').addEventListener('click', function(){
     if (!db) return;
     var list, msg = $('imp-msg'), btn = this;
