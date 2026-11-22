@@ -726,7 +726,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
             <label class="f" for="pj-video">Video (optional, YouTube oder Instagram)<input id="pj-video" type="url" placeholder="https://youtube.com/watch?v=…"></label>
             <label class="f" for="pj-link">Website (optional)<input id="pj-link" type="url" placeholder="https://"></label>
             <div class="f accentrow"><span>Akzentfarbe auf der Projektseite</span>
-              <div class="rowact"><label class="swatch"><input id="pj-accent" type="color" value="#e5343d" aria-label="Akzentfarbe wählen"></label><span class="sub" id="pj-accent-txt">Automatisch aus dem Bild</span><button class="linkbtn" type="button" id="pj-accent-auto" hidden>Automatisch</button></div>
+              <div class="rowact"><label class="swatch"><input id="pj-accent" type="color" value="#808080" aria-label="Akzentfarbe wählen"></label><span class="sub" id="pj-accent-txt">Automatisch aus dem Bild</span><button class="linkbtn" type="button" id="pj-accent-auto" hidden>Automatisch</button></div>
             </div>
             <div class="cropper" id="pj-crop" hidden></div>
             <div class="rowact"><label class="btn line sm filebtn" for="pj-file">Foto wählen<input id="pj-file" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="btn sm" type="submit" id="pj-save">Speichern</button><button class="linkbtn" type="button" id="pj-reset" hidden>Abbrechen</button></div>
@@ -1430,11 +1430,13 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   });
   function setAccent(v){
     state.projAccent = hexRgb(v) ? v : '';
-    if (state.projAccent) $('pj-accent').value = state.projAccent;
-    $('pj-accent-txt').textContent = state.projAccent ? state.projAccent.toUpperCase() : 'Automatisch aus dem Bild';
+    $('pj-accent').value = state.projAccent || '#808080';
+    $('pj-accent-txt').textContent = state.projAccent ? state.projAccent.toUpperCase() : 'Automatisch aus dem Bild (zum \u00c4ndern auf den Kreis tippen)';
     $('pj-accent-auto').hidden = !state.projAccent;
   }
+  // Safari only reports the colour when the picker closes, so listen to both
   $('pj-accent').addEventListener('input', function(){ setAccent(this.value); });
+  $('pj-accent').addEventListener('change', function(){ setAccent(this.value); });
   $('pj-accent-auto').addEventListener('click', function(){ setAccent(''); });
   function resetProjForm(){ setAccent(''); state.editProj = null; state.projSeedPhoto = ''; state.projCrop = cropOf(null); setCropSrc(''); $('proj-form').reset(); $('proj-form-title').textContent = 'Neues Projekt'; $('pj-reset').hidden = true; theaterBox(); }
   // theatre, director and guest performances only make sense for theatre projects
