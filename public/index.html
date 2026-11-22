@@ -1547,6 +1547,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       + nav + '</div></div></div>';
     el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden'; document.documentElement.classList.add('dopen');
     $('detail-close').addEventListener('click', function(){ backTo('termine'); });
+    // shows of a project wear the project's colours (its own accent colour, background from the picture)
+    if (proj){ el.setAttribute('data-src', ph || ''); applyTint(el, ph, proj.accent); }
     Array.prototype.forEach.call(el.querySelectorAll('[data-ics]'), function(a){ a.addEventListener('click', function(e){ e.preventDefault(); downloadIcs(s, v); var n = $('calnote'); if (n && window.claude && !window.NR_SITE) n.hidden = false; }); });
   }
   /* calendar export */
