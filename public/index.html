@@ -1497,8 +1497,10 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       var v = venueById(s.venueId); if (v && v.city && !isTBA(v)) cities[v.city.toLowerCase()] = v.city; if (v && v.country) countries[v.country] = 1;
       if (!v || v.lat == null || isTBA(v)) return;
       // one dot per city: all venues of a city are summed up
-      var key = v.city ? 'c:' + norm(v.city) : 'v:' + v.id;
-      var g = by[key] || (by[key] = { key: key, city: v.city || v.name, venues: {}, shows: [] });
+      var city = v.city;
+      if (!city){ var near = state.venues.filter(function(o){ return o.city && o.lat != null && Math.abs(o.lat - v.lat) < .1 && Math.abs(o.lng - v.lng) < .15; })[0]; if (near) city = near.city; }   // no city given: use the city of a venue close by
+      var key = city ? 'c:' + norm(city) : 'v:' + v.id;
+      var g = by[key] || (by[key] = { key: key, city: city || v.name, venues: {}, shows: [] });
       g.venues[v.id] = v; g.shows.push(s);
     });
     var nShows = list.length, nCities = Object.keys(cities).length, nC = Object.keys(countries).length;
@@ -1658,7 +1660,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
         var v = findVenue(r.venue), key = norm(r.venue);
         var vid = v ? v.id : made[key];
         var getV = vid ? Promise.resolve(vid) : (function(){ var ref = db.collection('venues').doc(); made[key] = ref.id;
-          return ref.set({ name: r.venue.trim(), city: (r.city || '').trim(), address: (r.address || '').trim(), createdAt: new Date().toISOString() }).then(function(){ return ref.id; }); })();
+          var sp = splitVenue(r.venue);
+          return ref.set({ name: sp[1] ? sp[0] : r.venue.trim(), city: (r.city || '').trim() || sp[1], address: (r.address || '').trim(), createdAt: new Date().toISOString() }).then(function(){ return ref.id; }); })();
         return getV.then(function(venueId){
           var dup = state.shows.some(function(s){ return s.date === r.date && s.venueId === venueId && norm(s.title) === norm(r.title); });
           if (dup){ skipped++; return; }
@@ -2085,7 +2088,24 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     $('artist-dl').innerHTML = state.artists.map(function(a){ return '<option value="'+esc(a.name)+'"></option>'; }).join('');
     updateVenueHint();
   }
-  function findVenue(name){ var n = norm(name); if (!n) return null; for (var i=0;i<state.venues.length;i++) if (norm(state.venues[i].name) === n) return state.venues[i]; return null; }
+  // "Maschinenhaus, Berlin" -> ['Maschinenhaus', 'Berlin']
+  function splitVenue(name){
+    var m = String(name || '').trim().match(/^(.+?)\s*,\s*([^,]+)$/);
+    return m && !/\d/.test(m[2]) ? [m[1].trim(), m[2].trim()] : [String(name || '').trim(), ''];
+  }
+  // tidy a venue in place: city out of the name into its own field
+  function fixVenue(o){
+    var sp = splitVenue(o.name);
+    if (sp[1] && (!o.city || norm(o.city) === norm(sp[1]))){ o.name = sp[0]; o.city = o.city || sp[1]; return true; }
+    return false;
+  }
+  function findVenue(name){
+    var n = norm(name); if (!n) return null;
+    var sp = splitVenue(name), n2 = norm(sp[0]), c2 = norm(sp[1]);
+    for (var i=0;i<state.venues.length;i++) if (norm(state.venues[i].name) === n) return state.venues[i];
+    if (c2) for (var j=0;j<state.venues.length;j++){ var v = state.venues[j]; if (norm(v.name) === n2 && (!v.city || norm(v.city) === c2)) return v; }
+    return null;
+  }
   function updateVenueHint(){
     var name = $('s-venue').value, v = findVenue(name), h = $('venue-hint');
     if (!name.trim()){ h.textContent = ''; $('newvenue').hidden = true; return; }
@@ -2232,7 +2252,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       if (!name) return Promise.resolve(null);
       var k = norm(name); if (created[k]) return Promise.resolve(created[k]);
       var ref = db.collection('venues').doc(), vid = ref.id; created[k] = vid;
-      return ref.set({ name: name, city: main ? $('v-city').value.trim() : '', address: main ? $('v-address').value.trim() : '', createdAt: new Date().toISOString() })
+      var sp = splitVenue(name), city = (main && $('v-city').value.trim()) || sp[1];
+      return ref.set({ name: sp[1] ? sp[0] : name, city: city, address: main ? $('v-address').value.trim() : '', createdAt: new Date().toISOString() })
         .then(function(){ return main ? db.doc('private/orga/details/venue-'+vid).set({ contact: $('v-contact').value.trim(), contactInfo: $('v-contactmail').value.trim() }) : null; })
         .then(function(){ return vid; });
     }
@@ -2359,7 +2380,14 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     function ready(){ if (got.shows && got.venues && got.artists){ state.dbReady = true; clearTimeout(timer); } rerender(); }
     function listen(coll, key){
       db.collection(coll).onSnapshot(function(snap){
-        state[key] = snap.docs.map(function(d){ var o = Object.assign({}, d.data()); o.id = d.id; return o; });
+        state[key] = snap.docs.map(function(d){
+          var o = Object.assign({}, d.data()); o.id = d.id;
+          if (key === 'venues' && fixVenue(o) && state.canEdit && !snap.metadata.fromCache){
+            var upd = { name: o.name, city: o.city }; if (o.geoFail) upd.geoFail = false;
+            db.doc('venues/' + o.id).update(upd).catch(function(){});
+          }
+          return o;
+        });
         if (!snap.metadata.fromCache) got[key] = true; ready();
       }, function(){ got[key] = true; ready(); });
     }
