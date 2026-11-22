@@ -1280,7 +1280,12 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   }
   // stock photos (no own picture yet) are simply cropped to fill
   // without an own picture there is simply no picture: detail views go full width, small cards drop the thumbnail
-  function pimg(src, crop){ return src ? '<span class="pimg">'+cimg(src, crop, '', '', true, true)+'</span>' : ''; }
+  // small square thumbnails always fill their square: they follow the chosen crop, or the centre when the picture is set to "ganz zeigen"
+  function pimg(src, crop){
+    if (!src) return '';
+    var d = cropOf(crop).d, v = d.g ? { g: 0, x: 50, y: 50, z: 1 } : { g: 0, x: d.x, y: d.y, z: d.z };
+    return '<span class="pimg">'+cimg(src, { d: v, m: v }, '', '', true, true)+'</span>';
+  }
   function dpic(src, crop, alt){ return src ? cimg(src, crop, alt, 'dimg') : ''; }
   function projCrop(p){ return (p.photoId || photoFor(p.title)) ? p.crop : { d: { g: 0 }, m: { g: 0 } }; }
   function projPhoto(p, i){ return p.photoId ? '/_blob/' + p.photoId : photoFor(p.title); }
