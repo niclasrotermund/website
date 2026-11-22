@@ -1915,7 +1915,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       + '<ul class="dlist">'+rows.map(function(r){ return '<li><span>'+esc(r[0])+'</span>'+esc(r[1])+'</li>'; }).join('')+'</ul>'
       + (url ? '<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Tickets kaufen</a>' : '')
       + (proj ? projLinks(proj, '<a class="btn line sm" href="#projekt-'+esc(proj.id)+'">Mehr zu '+esc(proj.title)+' \u2192</a>') : '')
-      + '<div class="calrow"><span class="label">Zum Kalender hinzufügen</span><a href="'+esc(gcalUrl(s, v))+'" target="_blank" rel="noopener">Google</a><a href="#" data-ics="'+esc(s.id)+'">Apple</a><a href="'+esc(outlookUrl(s, v))+'" target="_blank" rel="noopener">Outlook</a><p class="calnote" id="calnote" hidden>In dieser Vorschau sind Datei-Downloads gesperrt. Auf der fertigen Website lädt hier die Kalenderdatei für iPhone und Mac.</p></div>'
+      + (s.date < todayStr() ? '' : '<div class="calrow"><span class="label">Zum Kalender hinzufügen</span><a href="'+esc(gcalUrl(s, v))+'" target="_blank" rel="noopener">Google</a><a href="#" data-ics="'+esc(s.id)+'">Apple</a><a href="'+esc(outlookUrl(s, v))+'" target="_blank" rel="noopener">Outlook</a><p class="calnote" id="calnote" hidden>In dieser Vorschau sind Datei-Downloads gesperrt. Auf der fertigen Website lädt hier die Kalenderdatei für iPhone und Mac.</p></div>')
       + showMap(v)
       + (more.length ? '<div class="more-dates"><p class="label" style="margin-bottom:8px">Weitere Termine</p>' + more.map(function(m){ var mv = venueById(m.venueId); return '<a href="#show-'+esc(m.id)+'"><span>'+ddmm(m.date)+m.date.slice(0,4)+'</span><span>'+esc(showWhere(m, mv))+' →</span></a>'; }).join('') + '</div>' : '')
       + nav + '</div></div></div>';
