@@ -252,6 +252,34 @@ footer a:hover{color:var(--fg)}
 .more-dates a:hover{color:var(--accent)}
 .dinfo .btn{margin-top:32px}
 @media (max-width:800px){.dgrid{grid-template-columns:1fr;gap:32px}.dimg{aspect-ratio:4/3}.dlist li{grid-template-columns:96px 1fr}}
+/* image framing: per image either "ganz zeigen" (nothing cut, blurred backdrop) or a chosen crop, separately for desktop and phone */
+.cimg{position:relative;display:block;overflow:hidden;--x:var(--xd,50%);--y:var(--yd,50%);--z:var(--zd,1)}
+.cimg img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cimg .fg{object-fit:cover;object-position:var(--x) var(--y);transform:scale(var(--z));transform-origin:var(--x) var(--y);transition:transform .8s var(--ease)}
+.cimg .bg{display:none;object-fit:cover;filter:blur(26px) brightness(.5);transform:scale(1.25)}
+.pcard:hover .cimg .fg{transform:scale(calc(var(--z) * 1.04))}
+.pcard:hover .cimg .bg{transform:scale(1.25)}
+@media (min-width:801px){.cimg.d-ganz{--z:1}.cimg.d-ganz .fg{object-fit:contain;object-position:50% 50%}.cimg.d-ganz .bg{display:block}}
+@media (max-width:800px){.cimg{--x:var(--xm,50%);--y:var(--ym,50%);--z:var(--zm,1)}.cimg.m-ganz{--z:1}.cimg.m-ganz .fg{object-fit:contain;object-position:50% 50%}.cimg.m-ganz .bg{display:block}
+  .dimg.m-ganz{aspect-ratio:auto}.dimg.m-ganz .fg{position:relative;height:auto;max-height:82svh}}
+.cropper{margin-top:6px;padding:16px;border:1px solid var(--line);border-radius:12px}
+.crop-grid{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:start;margin-top:12px}
+.crop-col .label{display:block;margin-bottom:8px}
+.crop-frame{position:relative;width:100%;overflow:hidden;border-radius:6px;background:#000;touch-action:none;user-select:none}
+.crop-frame.drag{cursor:grab}.crop-frame.drag:active{cursor:grabbing}
+.crop-frame .cimg{position:absolute;inset:0}
+.crop-frame .fg{transition:none}
+.crop-frame[data-cv="m"]{max-width:260px}
+.crop-seg{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.crop-seg button{font:500 12px/1 var(--b-font);padding:8px 11px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--fg);cursor:pointer}
+.crop-seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.crop-zoom{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--muted)}
+.crop-zoom input{flex:1;min-width:0}
+.crop-hint{margin-top:12px;font-size:12px;color:var(--muted)}
+@media (max-width:520px){.crop-grid{grid-template-columns:1fr 1fr}}
+.more-shows{margin-top:32px;display:flex;justify-content:center}
+main:not([data-page="termine"]) .show.extra{display:none}
+main[data-page="termine"] .more-shows{display:none}
 
 /* look picker */
 .picker{position:fixed;right:max(18px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));z-index:65}
@@ -657,6 +685,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
             </div>
             <label class="f" for="pj-video">Video (optional, YouTube oder Instagram)<input id="pj-video" type="url" placeholder="https://youtube.com/watch?v=…"></label>
             <label class="f" for="pj-link">Website (optional)<input id="pj-link" type="url" placeholder="https://"></label>
+            <div class="cropper" id="pj-crop" hidden></div>
             <div class="rowact"><label class="btn line sm filebtn" for="pj-file">Foto wählen<input id="pj-file" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="btn sm" type="submit" id="pj-save">Speichern</button><button class="linkbtn" type="button" id="pj-reset" hidden>Abbrechen</button></div>
           </form>
           <p class="msg" id="proj-msg" role="status"></p>
@@ -1001,6 +1030,12 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   function projectFor(title){ var n = norm(title); if (!n) return null; for (var i=0;i<state.projects.length;i++) if (norm(state.projects[i].title) === n) return state.projects[i]; return null; }
   // photo for a show: the artist's photo, otherwise the photo of a project (e.g. a theatre production) with the same name
   function photoFor(title){ var a = artistFor(title); if (a && a.photoId) return '/_blob/' + a.photoId; var p = projectFor(title); return p && p.photoId ? '/_blob/' + p.photoId : ''; }
+  // framing for a show's picture: the project's own setting when the picture comes from a project, the default header photo is cropped
+  function showCrop(s, ph){
+    if (ph === 'img/header.jpg') return { d: { g: 0 }, m: { g: 0 } };
+    var a = artistFor(s.title) || artistFor(s.seriesName); if (a && a.photoId) return null;
+    var p = projectFor(s.title) || projectFor(s.seriesName); return p ? p.crop : null;
+  }
   function showPhoto(s){ return photoFor(s.title) || photoFor(s.seriesName) || ''; }
   function upcomingPublic(){
     var t = todayStr();
@@ -1181,6 +1216,15 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       .map(function(a){ return { id: 'artist-' + a.id, title: a.name, kind: 'artist', photoId: a.photoId || '', virtual: true }; });
     return real.concat(extra);
   }
+  function cnum(v, d){ v = parseFloat(v); return isFinite(v) ? v : d; }
+  function cropView(v){ v = v || {}; return { g: v.g === undefined ? 1 : (v.g ? 1 : 0), x: cnum(v.x, 50), y: cnum(v.y, 50), z: cnum(v.z, 1) }; }
+  function cropOf(c){ c = c || {}; return { d: cropView(c.d), m: cropView(c.m) }; }
+  // sameOnPhone: tiles keep their 4:5 shape on phones too, so they use the desktop framing everywhere
+  function cimg(src, crop, alt, cls, sameOnPhone, lazy){
+    var c = cropOf(crop), d = c.d, m = sameOnPhone ? c.d : c.m, l = lazy ? ' loading="lazy"' : '';
+    return '<span class="cimg'+(d.g ? ' d-ganz' : '')+(m.g ? ' m-ganz' : '')+(cls ? ' ' + cls : '')+'" style="--xd:'+d.x+'%;--yd:'+d.y+'%;--zd:'+d.z+';--xm:'+m.x+'%;--ym:'+m.y+'%;--zm:'+m.z+'">'
+      + '<img class="bg" src="'+esc(src)+'" alt="" aria-hidden="true"'+l+'><img class="fg" src="'+esc(src)+'" alt="'+esc(alt)+'"'+l+'></span>';
+  }
   var PLINKS = [['spotify', 'Spotify'], ['instagram', 'Instagram'], ['link', 'Website']];
   function projLinks(p, extra){
     var out = PLINKS.map(function(k){ var u = safeUrl(p[k[0]]); return u ? '<a class="btn line sm" href="'+esc(u)+'" target="_blank" rel="noopener">'+k[1]+' \u2197</a>' : ''; }).join('') + (extra || '');
@@ -1190,6 +1234,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var info = vidInfo(p.video); if (!info) return '';
     return '<a class="vid pvid" href="'+esc(info.url)+'" target="_blank" rel="noopener"><div class="cover"><img src="'+esc(cover)+'" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></div><div class="vt"><b>'+esc(p.title)+'</b><span>'+info.platform+(window.NR_SITE ? '' : ' \u2197')+'</span></div></a>';
   }
+  // stock photos (no own picture yet) are simply cropped to fill
+  function projCrop(p){ return (p.photoId || photoFor(p.title)) ? p.crop : { d: { g: 0 }, m: { g: 0 } }; }
   function projPhoto(p, i){ return p.photoId ? '/_blob/' + p.photoId : (photoFor(p.title) || COVERS[i % COVERS.length]); }
   function renderProjects(){
     var all = sortedProjects(), list = all.filter(function(p){ return state.projFilter === 'alle' || p.kind === state.projFilter; });
@@ -1197,7 +1243,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     $('proj-nav') && ($('proj-nav').hidden = $('projekte').hidden);
     $('public-projects').innerHTML = list.length ? list.map(function(p){
       var i = all.indexOf(p);
-      return '<a class="pcard" href="#projekt-'+esc(p.id)+'"><span class="pc-img"><img src="'+esc(projPhoto(p, i))+'" alt="'+esc(p.title)+'" loading="lazy"></span><span class="pc-kind">'+esc(KINDS[p.kind] || '')+'</span><b>'+esc(p.title)+'</b><span class="pc-meta">'+esc([p.role, p.year].filter(Boolean).join(' \u00b7 '))+'</span></a>';
+      return '<a class="pcard" href="#projekt-'+esc(p.id)+'">'+cimg(projPhoto(p, i), projCrop(p), p.title, 'pc-img', true, true)+'<span class="pc-kind">'+esc(KINDS[p.kind] || '')+'</span><b>'+esc(p.title)+'</b><span class="pc-meta">'+esc([p.role, p.year].filter(Boolean).join(' \u00b7 '))+'</span></a>';
     }).join('') : '<div class="empty" style="grid-column:1/-1">'+(all.length ? 'In dieser Kategorie gibt es noch nichts.' : 'Projekte legst du im internen Bereich an.')+'</div>';
   }
   $('proj-filter').addEventListener('click', function(e){
@@ -1219,7 +1265,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     };
     var nav = all.length > 1 ? '<div class="dnav"><p class="cnt label">Projekt '+(pos+1)+' von '+all.length+'</p><div class="pngrid">'+card(prev, 'prev')+card(next, 'next')+'</div></div>' : '';
     el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span><button class="close" type="button" id="detail-close">Schlie\u00dfen \u2715</button></div>'
-      + '<div class="dgrid"><div class="dimg"><img src="'+esc(projPhoto(p, pos))+'" alt="'+esc(p.title)+'"></div><div class="dinfo">'
+      + '<div class="dgrid">'+cimg(projPhoto(p, pos), projCrop(p), p.title, 'dimg')+'<div class="dinfo">'
       + '<p class="dd" style="text-transform:uppercase">'+esc(KINDS[p.kind] || 'Projekt')+'</p><h1 class="disp">'+esc(p.title)+'</h1>'
       + (p.text ? '<p class="dtext">'+esc(p.text)+'</p>' : '')
       + projLinks(p)
@@ -1245,14 +1291,57 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
         + '<button class="linkbtn danger" type="button" data-pjdel="'+esc(p.id)+'">'+(state.confirmProj === p.id ? 'Wirklich l\u00f6schen?' : 'L\u00f6schen')+'</button></div></div>';
     }).join('') : '<div class="iempty">Noch keine Projekte. Lege unten das erste an.</div>';
   }
-  function resetProjForm(){ state.editProj = null; state.projSeedPhoto = ''; $('proj-form').reset(); $('proj-form-title').textContent = 'Neues Projekt'; $('pj-reset').hidden = true; }
+  state.projCrop = cropOf(null); state.cropSrc = ''; state.cropRatio = 0;
+  var CVIEWS = [['d', 'Desktop & Kacheln', 0.8], ['m', 'Handy, Projektseite', 4/3]];
+  function setCropSrc(src){
+    state.cropSrc = src || ''; state.cropRatio = 0;
+    if (src){ var im = new Image(); im.onload = function(){ if (state.cropSrc === src){ state.cropRatio = im.naturalWidth / im.naturalHeight; renderCropper(); } }; im.src = src; }
+    renderCropper();
+  }
+  function renderCropper(){
+    var box = $('pj-crop'); if (!box) return;
+    box.hidden = !state.cropSrc; if (!state.cropSrc){ box.innerHTML = ''; return; }
+    box.innerHTML = '<p class="label">Bildausschnitt</p><div class="crop-grid">' + CVIEWS.map(function(cv){
+      var v = state.projCrop[cv[0]], ratio = v.g && cv[0] === 'm' && state.cropRatio ? Math.max(state.cropRatio, 0.56) : cv[2];
+      return '<div class="crop-col"><span class="label">'+cv[1]+'</span>'
+        + '<div class="crop-frame'+(v.g ? '' : ' drag')+'" data-cv="'+cv[0]+'" style="aspect-ratio:'+ratio+'">'+cimg(state.cropSrc, { d: v, m: v }, '', '', true)+'</div>'
+        + '<div class="crop-seg"><button type="button" data-cg="'+cv[0]+'" data-g="1" aria-pressed="'+(v.g ? 'true' : 'false')+'">Ganz zeigen</button><button type="button" data-cg="'+cv[0]+'" data-g="0" aria-pressed="'+(v.g ? 'false' : 'true')+'">Zuschneiden</button></div>'
+        + (v.g ? '' : '<label class="crop-zoom">Zoom<input type="range" min="1" max="3" step="0.05" value="'+v.z+'" data-cz="'+cv[0]+'"></label>')
+        + '</div>';
+    }).join('') + '</div><p class="crop-hint">„Ganz zeigen“ schneidet nichts ab. Bei „Zuschneiden“ ziehst du das Bild im Rahmen an die richtige Stelle. Gespeichert wird mit „Speichern“.</p>';
+  }
+  function cropLive(k){
+    var v = state.projCrop[k], el = $('pj-crop').querySelector('.crop-frame[data-cv="'+k+'"] .cimg'); if (!el) return;
+    ['d', 'm'].forEach(function(b){ el.style.setProperty('--x'+b, v.x + '%'); el.style.setProperty('--y'+b, v.y + '%'); el.style.setProperty('--z'+b, v.z); });
+  }
+  $('pj-crop').addEventListener('click', function(e){
+    var b = e.target.closest('[data-cg]'); if (!b) return;
+    state.projCrop[b.getAttribute('data-cg')].g = +b.getAttribute('data-g'); renderCropper();
+  });
+  $('pj-crop').addEventListener('input', function(e){
+    var r = e.target.closest('[data-cz]'); if (!r) return;
+    var k = r.getAttribute('data-cz'); state.projCrop[k].z = +r.value; cropLive(k);
+  });
+  $('pj-crop').addEventListener('pointerdown', function(e){
+    var f = e.target.closest('.crop-frame.drag'); if (!f) return;
+    e.preventDefault();
+    var k = f.getAttribute('data-cv'), v = state.projCrop[k], r = f.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, x0 = v.x, y0 = v.y;
+    var clamp = function(n){ return Math.max(0, Math.min(100, Math.round(n * 10) / 10)); };
+    var mv = function(ev){ v.x = clamp(x0 - (ev.clientX - sx) / r.width * 100 * 1.6 / v.z); v.y = clamp(y0 - (ev.clientY - sy) / r.height * 100 * 1.6 / v.z); cropLive(k); };
+    var up = function(){ window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  });
+  function resetProjForm(){ state.editProj = null; state.projSeedPhoto = ''; state.projCrop = cropOf(null); setCropSrc(''); $('proj-form').reset(); $('proj-form-title').textContent = 'Neues Projekt'; $('pj-reset').hidden = true; }
   $('pj-reset').addEventListener('click', function(){ resetProjForm(); $('proj-msg').textContent = ''; });
-  $('pj-file').addEventListener('change', function(){ $('proj-msg').textContent = this.files[0] ? 'Foto: ' + this.files[0].name : ''; });
+  $('pj-file').addEventListener('change', function(){
+    var f = this.files[0]; $('proj-msg').textContent = f ? 'Foto: ' + f.name : '';
+    if (f){ state.projCrop = cropOf(null); setCropSrc(URL.createObjectURL(f)); }
+  });
   $('proj-form').addEventListener('submit', function(e){
     e.preventDefault(); if (!db) return;
     var links = { spotify: $('pj-spotify').value.trim(), instagram: $('pj-insta').value.trim(), video: $('pj-video').value.trim(), link: $('pj-link').value.trim() };
     for (var k in links) if (links[k] && !safeUrl(links[k])){ $('proj-msg').textContent = 'Links m\u00fcssen mit https:// beginnen.'; return; }
-    var data = { title: $('pj-title').value.trim(), kind: $('pj-kind').value, year: $('pj-year').value.trim(), role: $('pj-role').value.trim(), text: $('pj-text').value.trim(), spotify: links.spotify, instagram: links.instagram, video: links.video, link: links.link };
+    var data = { title: $('pj-title').value.trim(), kind: $('pj-kind').value, year: $('pj-year').value.trim(), role: $('pj-role').value.trim(), text: $('pj-text').value.trim(), spotify: links.spotify, instagram: links.instagram, video: links.video, link: links.link, crop: JSON.parse(JSON.stringify(state.projCrop)) };
     var f = $('pj-file').files[0], btn = $('pj-save'), editing = state.editProj; btn.disabled = true; $('proj-msg').textContent = 'Speichere \u2026';
     (f ? upload(f) : Promise.resolve('')).then(function(pid){
       if (pid) data.photoId = pid;
@@ -1271,7 +1360,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       state.editProj = p.virtual ? null : p.id; state.projSeedPhoto = p.virtual ? p.photoId : '';
       $('pj-title').value = p.title || ''; $('pj-kind').value = p.kind || 'artist'; $('pj-year').value = p.year || ''; $('pj-role').value = p.role || ''; $('pj-text').value = p.text || '';
       $('pj-spotify').value = p.spotify || ''; $('pj-insta').value = p.instagram || ''; $('pj-video').value = p.video || ''; $('pj-link').value = p.link || '';
-      $('proj-form-title').textContent = (p.virtual ? 'Artist als Projekt erg\u00e4nzen: ' : 'Projekt bearbeiten: ') + p.title; $('pj-reset').hidden = false; $('proj-msg').textContent = p.photoId ? 'Neues Foto w\u00e4hlen, um das alte zu ersetzen.' : '';
+      $('proj-form-title').textContent = (p.virtual ? 'Artist als Projekt erg\u00e4nzen: ' : 'Projekt bearbeiten: ') + p.title;
+      state.projCrop = cropOf(p.crop); setCropSrc(p.photoId ? '/_blob/' + p.photoId : ''); $('pj-reset').hidden = false; $('proj-msg').textContent = p.photoId ? 'Neues Foto w\u00e4hlen, um das alte zu ersetzen.' : '';
       $('pj-title').focus();
     } else if (b.hasAttribute('data-pjdel')){
       var id = b.getAttribute('data-pjdel');
@@ -1295,13 +1385,14 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var list = upcomingPublic(), box = $('public-shows');
     renderTicker(list);
     if (!list.length){ box.innerHTML = '<div class="empty">Gerade stehen keine Termine an.</div>'; return; }
-    box.innerHTML = '<ul class="shows">' + list.map(function(s){
+    box.innerHTML = '<ul class="shows">' + list.map(function(s, i){
       var d = parseD(s.date), v = venueById(s.venueId);
       var meta = [WD[d.getDay()], timeRange(s), v ? v.name + (v.city ? ', ' + v.city : '') : ''].filter(Boolean).join(' · ');
-      return '<li class="show"><a href="#show-'+esc(s.id)+'" data-photo="'+esc(showPhoto(s))+'"><div class="d">'+ddmm(s.date)+'<small>'+d.getFullYear()+'</small></div>'
+      return '<li class="show'+(i >= 5 ? ' extra' : '')+'"><a href="#show-'+esc(s.id)+'" data-photo="'+esc(showPhoto(s))+'"><div class="d">'+ddmm(s.date)+'<small>'+d.getFullYear()+'</small></div>'
         + '<div><h3>'+esc(s.title)+'</h3><p class="meta">'+esc(meta)+(s.seriesName && norm(s.seriesName) !== norm(s.title) ? ' · '+esc(s.seriesName) : '')+'</p></div>'
         + '<span class="go">'+(safeUrl(s.ticketUrl) ? 'Tickets →' : 'Details →')+'</span></a></li>';
-    }).join('') + '</ul>';
+    }).join('') + '</ul>'
+      + (list.length > 5 ? '<div class="more-shows"><a class="btn line" href="'+esc(pageHref('termine'))+'">Alle '+list.length+' Termine anzeigen \u2192</a></div>' : '');
   }
   /* hover photo */
   var peek = $('peek'), peekImg = peek.querySelector('img');
@@ -1335,7 +1426,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     };
     var nav = pos >= 0 && all.length > 1 ? '<div class="dnav"><p class="cnt label">Termin '+(pos+1)+' von '+all.length+'</p><div class="pngrid">'+card(prev, 'prev')+card(next, 'next')+'</div></div>' : '';
     el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span><button class="close" type="button" id="detail-close">Schließen ✕</button></div>'
-      + '<div class="dgrid"><div class="dimg"><img src="'+esc(ph)+'" alt="'+esc(s.title)+'"></div><div class="dinfo">'
+      + '<div class="dgrid">'+cimg(ph, showCrop(s, ph), s.title, 'dimg')+'<div class="dinfo">'
       + '<p class="dd">'+ddmm(s.date)+d.getFullYear()+'</p><h1 class="disp">'+esc(s.title)+'</h1>'
       + '<ul class="dlist">'+rows.map(function(r){ return '<li><span>'+esc(r[0])+'</span>'+esc(r[1])+'</li>'; }).join('')+'</ul>'
       + (url ? '<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Tickets kaufen</a>' : '')
