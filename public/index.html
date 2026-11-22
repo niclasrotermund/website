@@ -405,6 +405,11 @@ main[data-page="termine"] .more-shows{display:none}
 .seg button{border:0;background:none;color:var(--muted);font:500 13px/1 var(--b-font);padding:8px 12px;border-radius:8px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .tablewrap{overflow-x:auto}
+.vedit td{background:var(--surface)}
+.vedit .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 14px;padding:6px 0}
+.vedit .vgrid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.vedit .vgrid input{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.vedit .rowact{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:0 12px 10px 0;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:13px 12px 13px 0;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -2075,13 +2080,56 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       var past = played.filter(function(s){ return s.date < t; }).map(function(s){ return s.date; }).sort();
       var last = past.length ? ddmm(past[past.length-1]) + past[past.length-1].slice(0,4) : '–';
       var c = state.details['venue-'+v.id] || {};
+      if (state.editVenue === v.id){
+        var d = state.vdraft || (state.vdraft = { name: v.name || '', city: v.city || '', address: v.address || '', contact: c.contact || '', contactInfo: c.contactInfo || '' });
+        var fld = function(k, lab){ return '<label>'+lab+'<input data-vf="'+k+'" value="'+esc(d[k])+'"></label>'; };
+        return '<tr class="vedit"><td colspan="6"><div class="vgrid">'+fld('name', 'Name')+fld('city', 'Stadt')+fld('address', 'Adresse')+fld('contact', 'Kontakt')+fld('contactInfo', 'Mail oder Telefon')+'</div>'
+          + '<div class="rowact"><button class="btn sm" type="button" data-vsave="'+esc(v.id)+'">'+(state.vmerge ? 'Zusammenführen' : 'Speichern')+'</button><button class="linkbtn" type="button" data-vcancel>Abbrechen</button>'
+          + (played.length ? '' : '<button class="linkbtn danger" type="button" data-vdel="'+esc(v.id)+'">'+(state.confirmVdel === v.id ? 'Wirklich löschen?' : 'Venue löschen')+'</button>')
+          + '<span class="sub" id="vedit-msg">'+esc(state.vmsg || '')+'</span></div></td></tr>';
+      }
       return '<tr><td><b>'+esc(v.name)+'</b><div class="sub">'+esc([v.address, v.city].filter(Boolean).join(', '))+'</div></td>'
         + '<td>'+esc(c.contact||'')+'<div class="sub">'+esc(c.contactInfo||'')+'</div></td>'
         + '<td class="num">'+played.length+'</td><td class="num">'+last+'</td>'
-        + '<td>'+(isTBA(v) ? '<span class="sub">TBA, kein Ort</span>' : v.lat != null ? (v.geoApprox ? '<span class="sub">nur Stadt</span>' : '\u2713') : (v.geoFail ? '<span class="sub">nicht gefunden</span>' : '<span class="sub">\u2013</span>'))+'</td></tr>';
+        + '<td>'+(isTBA(v) ? '<span class="sub">TBA, kein Ort</span>' : v.lat != null ? (v.geoApprox ? '<span class="sub">nur Stadt</span>' : '\u2713') : (v.geoFail ? '<span class="sub">nicht gefunden</span>' : '<span class="sub">\u2013</span>'))+'</td><td><button class="linkbtn" type="button" data-vedit="'+esc(v.id)+'">Bearbeiten</button></td></tr>';
     }).join('');
-    $('venue-table').innerHTML = '<table><thead><tr><th>Venue</th><th>Kontakt</th><th>Shows</th><th>Zuletzt</th><th>Karte</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    $('venue-table').innerHTML = '<table><thead><tr><th>Venue</th><th>Kontakt</th><th>Shows</th><th>Zuletzt</th><th>Karte</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
   }
+  function closeVenueEdit(){ state.editVenue = null; state.vdraft = null; state.vmerge = null; state.vmsg = ''; state.confirmVdel = null; renderVenueTable(); }
+  $('venue-table').addEventListener('input', function(e){ var k = e.target.getAttribute('data-vf'); if (k && state.vdraft){ state.vdraft[k] = e.target.value; if (state.vmerge){ state.vmerge = null; state.vmsg = ''; var b = document.querySelector('[data-vsave]'); if (b) b.textContent = 'Speichern'; $('vedit-msg').textContent = ''; } } });
+  $('venue-table').addEventListener('click', function(e){
+    var ed = e.target.closest('[data-vedit]'), sv = e.target.closest('[data-vsave]'), dl = e.target.closest('[data-vdel]');
+    if (ed){ state.editVenue = ed.getAttribute('data-vedit'); state.vdraft = null; state.vmerge = null; state.vmsg = ''; state.confirmVdel = null; renderVenueTable(); var i = document.querySelector('[data-vf="name"]'); if (i) i.focus(); return; }
+    if (e.target.closest('[data-vcancel]')){ closeVenueEdit(); return; }
+    if (dl){
+      var did = dl.getAttribute('data-vdel');
+      if (state.confirmVdel !== did){ state.confirmVdel = did; renderVenueTable(); return; }
+      db.doc('venues/' + did).delete().then(closeVenueEdit).catch(function(err){ state.vmsg = 'Löschen hat nicht geklappt: ' + (err && err.message || err); renderVenueTable(); });
+      return;
+    }
+    if (!sv || !db) return;
+    var id = sv.getAttribute('data-vsave'), v = venueById(id), d = state.vdraft; if (!v || !d) return;
+    var name = d.name.trim(), city = d.city.trim(), address = d.address.trim();
+    if (!name){ state.vmsg = 'Bitte einen Namen eintragen.'; renderVenueTable(); return; }
+    var sp = splitVenue(name); if (sp[1] && !city){ name = sp[0]; city = sp[1]; }
+    // same name and city as another venue: offer to merge both into that one
+    var twin = state.venues.filter(function(o){ return o.id !== id && norm(o.name) === norm(name) && norm(o.city || '') === norm(city); })[0];
+    sv.disabled = true;
+    if (twin){
+      if (state.vmerge !== twin.id){ state.vmerge = twin.id; state.vmsg = '„' + twin.name + (twin.city ? ', ' + twin.city : '') + '“ gibt es schon. Zusammenführen legt alle Shows dorthin und löscht diesen Eintrag.'; renderVenueTable(); return; }
+      var moves = state.shows.filter(function(s){ return s.venueId === id; }).map(function(s){ return db.doc('shows/' + s.id).update({ venueId: twin.id }); });
+      Promise.all(moves).then(function(){ return db.doc('venues/' + id).delete(); }).then(closeVenueEdit)
+        .catch(function(err){ state.vmsg = 'Hat nicht geklappt: ' + (err && err.message || err); renderVenueTable(); });
+      return;
+    }
+    var upd = { name: name, city: city, address: address };
+    // new place: find it on the map again
+    if (norm(city) !== norm(v.city || '') || norm(address) !== norm(v.address || '') || norm(name) !== norm(v.name || '')) { upd.lat = null; upd.lng = null; upd.geoFail = false; upd.geoApprox = false; }
+    db.doc('venues/' + id).update(upd)
+      .then(function(){ return db.doc('private/orga/details/venue-' + id).set({ contact: d.contact.trim(), contactInfo: d.contactInfo.trim() }); })
+      .then(function(){ var moved = upd.lat === null; closeVenueEdit(); if (moved) $('geo-msg').textContent = 'Venue geändert. Klick „Orte für die Karte suchen“, damit der Punkt wieder stimmt.'; })
+      .catch(function(err){ state.vmsg = 'Speichern hat nicht geklappt: ' + (err && err.message || err); renderVenueTable(); });
+  });
   function renderArtists(){
     var list = state.artists.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'de'); });
     if (!list.length){ $('artist-list').innerHTML = '<div class="iempty">Noch keine Artists. Lege unten einen an und lade ein Foto hoch.</div>'; return; }
