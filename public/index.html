@@ -300,6 +300,7 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 .pn.noimg,.pn.next.noimg{grid-template-columns:minmax(0,1fr);min-height:76px}
 .pc-none{display:flex!important;align-items:flex-end;padding:22px;border:1px solid var(--line);background:var(--surface)}
 .pc-none span{font-family:var(--d-font);font-weight:var(--d-weight);text-transform:var(--d-case);font-size:clamp(32px,3.4vw,52px);line-height:.95;color:var(--muted);overflow-wrap:anywhere}
+.detail{transition:background-color .6s var(--ease)}
 .more-shows{margin-top:32px;display:flex;justify-content:center}
 main:not([data-page="termine"]) .show.extra{display:none}
 main[data-page="termine"] .more-shows{display:none}
@@ -1286,6 +1287,50 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     $('proj-filter').querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
     renderProjects();
   });
+  /* project pages take their colours from the project picture: a dark tint of its main colour as background, a bright version as accent */
+  var TINT_VARS = ['--bg', '--surface', '--line', '--accent', '--accent-soft', '--muted'];
+  function clearTint(el){ TINT_VARS.forEach(function(v){ el.style.removeProperty(v); }); el.classList.remove('tinted'); }
+  function hsl(r, g, b){
+    r /= 255; g /= 255; b /= 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, sa = 0, d = mx - mn;
+    if (d){ sa = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+    return [h, sa, l];
+  }
+  function imageTint(src, done){
+    var im = new Image();
+    im.onload = function(){
+      try {
+        var c = document.createElement('canvas'), W = 48, H = Math.max(1, Math.round(48 * im.naturalHeight / im.naturalWidth));
+        c.width = W; c.height = H; var x = c.getContext('2d'); x.drawImage(im, 0, 0, W, H);
+        var px = x.getImageData(0, 0, W, H).data, bins = [];
+        for (var i = 0; i < px.length; i += 4){
+          if (px[i+3] < 128) continue;
+          var q = hsl(px[i], px[i+1], px[i+2]); if (q[2] < .1 || q[2] > .93) continue;
+          var w = q[1] * q[1] * (1 - Math.abs(q[2] - .5)), k = Math.floor(q[0] / 15) % 24, bn = bins[k] || (bins[k] = { w: 0, r: 0, g: 0, b: 0 });
+          bn.w += w; bn.r += px[i] * w; bn.g += px[i+1] * w; bn.b += px[i+2] * w;
+        }
+        var best = null, total = 0; bins.forEach(function(bn){ if (bn){ total += bn.w; if (!best || bn.w > best.w) best = bn; } });
+        if (!best || total < W * H * .02) return done(null);   // black-and-white or very pale picture: keep the normal colours
+        done(hsl(best.r / best.w, best.g / best.w, best.b / best.w));
+      } catch (e){ done(null); }
+    };
+    im.onerror = function(){ done(null); };
+    im.src = src;
+  }
+  function applyTint(el, src){
+    clearTint(el); if (!src) return;
+    imageTint(src, function(c){
+      if (!c || el.hidden || el.getAttribute('data-src') !== src) return;
+      var h = Math.round(c[0]), sa = Math.round(Math.max(c[1], .45) * 100);
+      el.style.setProperty('--bg', 'hsl('+h+','+Math.min(sa, 45)+'%,7%)');
+      el.style.setProperty('--surface', 'hsl('+h+','+Math.min(sa, 40)+'%,11%)');
+      el.style.setProperty('--line', 'hsla('+h+',40%,80%,.16)');
+      el.style.setProperty('--muted', 'hsl('+h+',18%,66%)');
+      el.style.setProperty('--accent', 'hsl('+h+','+Math.min(sa + 10, 90)+'%,64%)');
+      el.style.setProperty('--accent-soft', 'hsla('+h+','+sa+'%,64%,.14)');
+      el.classList.add('tinted');
+    });
+  }
   function openProject(id){
     var all = sortedProjects(), p = all.filter(function(x){ return x.id === id; })[0], el = $('detail');
     if (!p){ if (state.dbReady) closeDetail(); return; }
@@ -1311,6 +1356,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       + nav + '</div></div></div>';
     el.hidden = false; el.scrollTop = 0; document.body.style.overflow = 'hidden'; document.documentElement.classList.add('dopen');
     $('detail-close').addEventListener('click', function(){ backTo('projekte'); });
+    el.setAttribute('data-src', projPhoto(p) || ''); applyTint(el, projPhoto(p));
   }
   // internal
   function renderProjectAdmin(){
@@ -1447,7 +1493,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   /* detail */
   var lastScroll = 0;
   function openDetail(id){
-    var s = state.shows.filter(function(x){ return x.id === id; })[0], el = $('detail');
+    var s = state.shows.filter(function(x){ return x.id === id; })[0], el = $('detail'); clearTint(el); el.removeAttribute('data-src');
     if (!s){ if (state.dbReady) closeDetail(); return; }
     if (el.hidden) lastScroll = window.scrollY;
     var d = parseD(s.date), v = venueById(s.venueId), url = safeUrl(s.ticketUrl), ph = showPhoto(s), proj = projectFor(s.title) || projectFor(s.seriesName);
