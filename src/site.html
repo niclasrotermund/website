@@ -324,7 +324,8 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 .emap-pop .sub{display:block;margin-top:4px;font-size:13px;color:var(--muted)}
 .emap-pop a{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);color:var(--fg);text-decoration:none;font-size:14px}
 .emap-pop a:first-of-type{margin-top:10px}
-.emap-pop a span:last-child{color:var(--muted);white-space:nowrap}
+.emap-pop a span:last-child{color:var(--muted);text-align:right}
+.emap-pop a small{display:block;font-size:12px;opacity:.75}
 .emap-pop a.up span:first-child{color:var(--accent)}
 .emap-pop .x{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer}
 .emap-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
@@ -1487,29 +1488,33 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     list.forEach(function(s){
       var v = venueById(s.venueId); if (v && v.city && !isTBA(v)) cities[v.city.toLowerCase()] = v.city; if (v && v.country) countries[v.country] = 1;
       if (!v || v.lat == null || isTBA(v)) return;
-      var g = by[v.id] || (by[v.id] = { v: v, shows: [] }); g.shows.push(s);
+      // one dot per city: all venues of a city are summed up
+      var key = v.city ? 'c:' + norm(v.city) : 'v:' + v.id;
+      var g = by[key] || (by[key] = { key: key, city: v.city || v.name, venues: {}, shows: [] });
+      g.venues[v.id] = v; g.shows.push(s);
     });
     var nShows = list.length, nCities = Object.keys(cities).length, nC = Object.keys(countries).length;
     $('map-stats').textContent = nShows ? nShows + (nShows === 1 ? ' Show' : ' Shows') + ' in ' + nCities + (nCities === 1 ? ' Stadt' : ' Städten') + (nC > 1 ? ' und ' + nC + ' Ländern' : '') + (state.mapYear === 'alle' ? '' : ' (' + state.mapYear + ')') + '. Tippe auf einen Punkt.' : 'Hier erscheinen bald die Orte meiner Shows.';
-    var groups = Object.keys(by).map(function(k){ var g = by[k]; g.p = mproj(g.v.lat, g.v.lng); g.up = g.shows.some(function(s){ return s.date >= t; }); g.shows.sort(function(a, b){ return b.date.localeCompare(a.date); }); return g; });
+    var groups = Object.keys(by).map(function(k){ var g = by[k], vs = Object.keys(g.venues).map(function(id){ return g.venues[id]; });
+      g.nVenues = vs.length; g.p = mproj(vs.reduce(function(a, v){ return a + v.lat; }, 0) / vs.length, vs.reduce(function(a, v){ return a + v.lng; }, 0) / vs.length); g.up = g.shows.some(function(s){ return s.date >= t; }); g.shows.sort(function(a, b){ return b.date.localeCompare(a.date); }); return g; });
     groups.sort(function(a, b){ return (a.up - b.up) || (b.shows.length - a.shows.length); });
     state.mapGroups = groups;
     var rect = $('emap').getBoundingClientRect(), aspect = rect.width && rect.height ? rect.width / rect.height : 16 / 9;
     var target = fitBox(groups.map(function(g){ return g.p; }), aspect, 170);
     svg.innerHTML = '<g>'+LAND+'</g><g id="emap-dots">' + groups.map(function(g, i){
-      return '<g class="dot'+(g.up ? ' up' : '')+(state.mapOpen === g.v.id ? ' on' : '')+'" data-i="'+i+'" tabindex="0" role="button" aria-label="'+esc((isTBA(g.v) ? g.v.city : g.v.name) + ', ' + g.shows.length + (g.shows.length === 1 ? ' Show' : ' Shows'))+'"><circle class="ring"/><circle class="core"/></g>';
+      return '<g class="dot'+(g.up ? ' up' : '')+(state.mapOpen === g.key ? ' on' : '')+'" data-i="'+i+'" tabindex="0" role="button" aria-label="'+esc(g.city + ', ' + g.shows.length + (g.shows.length === 1 ? ' Show' : ' Shows'))+'"><circle class="ring"/><circle class="core"/></g>';
     }).join('') + '</g>';
     animateBox(svg, target);
     // most played cities
     var cc = {}; list.forEach(function(s){ var v = venueById(s.venueId); var c = v && (isTBA(v) ? v.city : (v.city || v.name)); if (c) cc[c] = (cc[c] || 0) + 1; });
     var top = Object.keys(cc).sort(function(a, b){ return cc[b] - cc[a] || a.localeCompare(b, 'de'); }).slice(0, 8);
     $('map-top').innerHTML = top.length > 1 ? '<p class="label">Meistgespielt</p>' + top.map(function(c){ return '<div><span>'+esc(c)+'</span><span>'+cc[c]+'×</span></div>'; }).join('') : '';
-    if (state.mapOpen && !groups.some(function(g){ return g.v.id === state.mapOpen; })) closeMapPop();
+    if (state.mapOpen && !groups.some(function(g){ return g.key === state.mapOpen; })) closeMapPop();
   }
   function placeDots(svg, box){
     var unit = box[2] / Math.max(1, svg.getBoundingClientRect().width || 800);   // map units per screen pixel
     Array.prototype.forEach.call(svg.querySelectorAll('.dot'), function(el){
-      var g = state.mapGroups[+el.getAttribute('data-i')], r = (5 + Math.min(7, Math.sqrt(g.shows.length) * 1.8)) * unit;
+      var g = state.mapGroups[+el.getAttribute('data-i')], r = Math.min(22, 4 + Math.sqrt(g.shows.length) * 3.2) * unit;   // more shows in a city, bigger dot
       Array.prototype.forEach.call(el.querySelectorAll('circle'), function(c){ c.setAttribute('cx', g.p[0]); c.setAttribute('cy', g.p[1]); c.setAttribute('r', r); });
     });
   }
@@ -1525,7 +1530,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   }
   function closeMapPop(){ state.mapOpen = null; $('emap-pop').hidden = true; Array.prototype.forEach.call(document.querySelectorAll('#emap .dot.on'), function(d){ d.classList.remove('on'); }); }
   function positionPop(){
-    var pop = $('emap-pop'), g = (state.mapGroups || []).filter(function(x){ return x.v.id === state.mapOpen; })[0], b = state.mapBox; if (!g || !b) return;
+    var pop = $('emap-pop'), g = (state.mapGroups || []).filter(function(x){ return x.key === state.mapOpen; })[0], b = state.mapBox; if (!g || !b) return;
     var r = $('emap').getBoundingClientRect(), x = (g.p[0] - b[0]) / b[2] * r.width, y = (g.p[1] - b[1]) / b[3] * r.height;
     var w = pop.offsetWidth, h = pop.offsetHeight, left = x + 18, top = y - h / 2;
     if (left + w > r.width - 12) left = x - w - 18;
@@ -1533,10 +1538,10 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   }
   function openMapPop(i){
     var g = state.mapGroups[i], t = todayStr(), pop = $('emap-pop'); if (!g) return;
-    state.mapOpen = g.v.id;
+    state.mapOpen = g.key;
     Array.prototype.forEach.call(document.querySelectorAll('#emap .dot'), function(d){ d.classList.toggle('on', +d.getAttribute('data-i') === i); });
-    pop.innerHTML = '<button class="x" type="button" aria-label="Schließen">✕</button><b>'+esc(g.v.city || g.v.name)+'</b><span class="sub">'+esc(g.v.name)+' · '+g.shows.length+(g.shows.length === 1 ? ' Show' : ' Shows')+'</span>'
-      + g.shows.map(function(s){ return '<a href="#show-'+esc(s.id)+'"'+(s.date >= t ? ' class="up"' : '')+'><span>'+ddmm(s.date)+s.date.slice(0, 4)+'</span><span>'+esc(s.title)+'</span></a>'; }).join('');
+    pop.innerHTML = '<button class="x" type="button" aria-label="Schließen">✕</button><b>'+esc(g.city)+'</b><span class="sub">'+g.shows.length+(g.shows.length === 1 ? ' Show' : ' Shows')+(g.nVenues > 1 ? ' in ' + g.nVenues + ' Venues' : ' · ' + esc(g.venues[Object.keys(g.venues)[0]].name))+'</span>'
+      + g.shows.map(function(s){ var sv = venueById(s.venueId); return '<a href="#show-'+esc(s.id)+'"'+(s.date >= t ? ' class="up"' : '')+'><span>'+ddmm(s.date)+s.date.slice(0, 4)+'</span><span>'+esc(s.title)+(g.nVenues > 1 && sv ? '<small>'+esc(sv.name)+'</small>' : '')+'</span></a>'; }).join('');
     pop.hidden = false; positionPop();
   }
   $('emap-svg').addEventListener('click', function(e){ var d = e.target.closest('.dot'); if (d) openMapPop(+d.getAttribute('data-i')); else closeMapPop(); });
