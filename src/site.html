@@ -1484,8 +1484,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     // group by venue
     var by = {}, cities = {}, countries = {};
     list.forEach(function(s){
-      var v = venueById(s.venueId); if (v && v.city) cities[v.city.toLowerCase()] = v.city; if (v && v.country) countries[v.country] = 1;
-      if (!v || v.lat == null) return;
+      var v = venueById(s.venueId); if (v && v.city && !isTBA(v)) cities[v.city.toLowerCase()] = v.city; if (v && v.country) countries[v.country] = 1;
+      if (!v || v.lat == null || isTBA(v)) return;
       var g = by[v.id] || (by[v.id] = { v: v, shows: [] }); g.shows.push(s);
     });
     var nShows = list.length, nCities = Object.keys(cities).length, nC = Object.keys(countries).length;
@@ -1496,11 +1496,11 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var rect = $('emap').getBoundingClientRect(), aspect = rect.width && rect.height ? rect.width / rect.height : 16 / 9;
     var target = fitBox(groups.map(function(g){ return g.p; }), aspect, 170);
     svg.innerHTML = '<g>'+LAND+'</g><g id="emap-dots">' + groups.map(function(g, i){
-      return '<g class="dot'+(g.up ? ' up' : '')+(state.mapOpen === g.v.id ? ' on' : '')+'" data-i="'+i+'" tabindex="0" role="button" aria-label="'+esc(g.v.name + ', ' + g.shows.length + ' Shows')+'"><circle class="ring"/><circle class="core"/></g>';
+      return '<g class="dot'+(g.up ? ' up' : '')+(state.mapOpen === g.v.id ? ' on' : '')+'" data-i="'+i+'" tabindex="0" role="button" aria-label="'+esc((isTBA(g.v) ? g.v.city : g.v.name) + ', ' + g.shows.length + (g.shows.length === 1 ? ' Show' : ' Shows'))+'"><circle class="ring"/><circle class="core"/></g>';
     }).join('') + '</g>';
     animateBox(svg, target);
     // most played cities
-    var cc = {}; list.forEach(function(s){ var v = venueById(s.venueId); var c = v && (v.city || v.name); if (c) cc[c] = (cc[c] || 0) + 1; });
+    var cc = {}; list.forEach(function(s){ var v = venueById(s.venueId); var c = v && (isTBA(v) ? v.city : (v.city || v.name)); if (c) cc[c] = (cc[c] || 0) + 1; });
     var top = Object.keys(cc).sort(function(a, b){ return cc[b] - cc[a] || a.localeCompare(b, 'de'); }).slice(0, 8);
     $('map-top').innerHTML = top.length > 1 ? '<p class="label">Meistgespielt</p>' + top.map(function(c){ return '<div><span>'+esc(c)+'</span><span>'+cc[c]+'×</span></div>'; }).join('') : '';
     if (state.mapOpen && !groups.some(function(g){ return g.v.id === state.mapOpen; })) closeMapPop();
@@ -1546,7 +1546,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 
   // small map on a show page: where is this show?
   function showMap(v){
-    if (!v || v.lat == null) return '';
+    if (!v || v.lat == null || isTBA(v)) return '';
     var p = mproj(v.lat, v.lng), b = fitAspect(DE_BOX, 4 / 3);
     // shows outside Germany get a box around them instead
     if (p[0] < b[0] || p[0] > b[0] + b[2] || p[1] < b[1] || p[1] > b[1] + b[3]) b = fitAspect([p[0] - 140, p[1] - 105, 280, 210], 4 / 3);
@@ -1602,7 +1602,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   });
   $('geo-btn').addEventListener('click', function(){
     if (!db) return;
-    var todo = state.venues.filter(function(v){ return v.lat == null; }), btn = this, done = 0, found = 0;
+    var todo = state.venues.filter(function(v){ return v.lat == null && !isTBA(v); }), btn = this, done = 0, found = 0;
     if (!todo.length){ $('geo-msg').textContent = 'Alle Venues sind schon auf der Karte.'; return; }
     btn.disabled = true;
     var next = function(i){
@@ -1623,8 +1623,11 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   });
 
   // venue name plus city, without repeating the city when the name already contains it ("Popsauna Osnabrück")
+  // "TBA" as venue: the place is not fixed yet, so no map position and a clear note instead of a name
+  function isTBA(v){ var n = norm(v && v.name).replace(/[.\s]/g, ''); return !!v && /^(tba|tbc|tbd|tobeannounced|ortfolgt|nochoffen)/.test(n); }
   function venueShort(v){
     if (!v) return '';
+    if (isTBA(v)) return v.city ? v.city + ' \u00b7 Ort folgt' : 'Ort wird noch bekannt gegeben';
     var n = (v.name || '').trim(), c = (v.city || '').trim();
     if (!n) return c; if (!c || n.toLowerCase().indexOf(c.toLowerCase()) >= 0) return n;
     return n + ', ' + c;
@@ -1818,7 +1821,8 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     rows.push(['Art', SHOW_KINDS[showKind(s)]]);
     if (s.role) rows.push(['Meine Rolle', s.role]);
     if (isFest(s) && s.festivalName) rows.push(['Festival', s.festivalName]);
-    if (v) rows.push(['Ort', [v.name, v.address, v.city && (v.name || '').toLowerCase().indexOf(v.city.toLowerCase()) < 0 ? v.city : ''].filter(Boolean).join(', ')]);
+    if (v && isTBA(v)) rows.push(['Ort', 'Wird noch bekannt gegeben' + (v.city ? ' (' + v.city + ')' : '')]);
+    else if (v) rows.push(['Ort', [v.name, v.address, v.city && (v.name || '').toLowerCase().indexOf(v.city.toLowerCase()) < 0 ? v.city : ''].filter(Boolean).join(', ')]);
     if (s.seriesName && norm(s.seriesName) !== norm(s.title)) rows.push(['Reihe', s.seriesName]);
     var more = s.seriesId ? upcomingPublic().filter(function(x){ return x.seriesId === s.seriesId && x.id !== s.id; }) : [];
     var all = upcomingPublic(), pos = -1; for (var k = 0; k < all.length; k++) if (all[k].id === s.id) pos = k;
@@ -1855,7 +1859,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     return { allDay: false, a: ds + 'T' + st, b: endD.replace(/-/g, '') + 'T' + endT.replace(':', '') + '00' };
   }
   function calText(s, v){
-    return { title: s.title + ' · Niclas Rotermund', loc: v ? [v.name, v.address, v.city].filter(Boolean).join(', ') : '', desc: safeUrl(s.ticketUrl) ? 'Tickets: ' + s.ticketUrl : 'Niclas Rotermund live' };
+    return { title: s.title + ' · Niclas Rotermund', loc: v ? (isTBA(v) ? (v.city || '') : [v.name, v.address, v.city].filter(Boolean).join(', ')) : '', desc: safeUrl(s.ticketUrl) ? 'Tickets: ' + s.ticketUrl : 'Niclas Rotermund live' };
   }
   function gcalUrl(s, v){
     var t = calTimes(s), c = calText(s, v);
@@ -1980,7 +1984,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       return '<tr><td><b>'+esc(v.name)+'</b><div class="sub">'+esc([v.address, v.city].filter(Boolean).join(', '))+'</div></td>'
         + '<td>'+esc(c.contact||'')+'<div class="sub">'+esc(c.contactInfo||'')+'</div></td>'
         + '<td class="num">'+played.length+'</td><td class="num">'+last+'</td>'
-        + '<td>'+(v.lat != null ? (v.geoApprox ? '<span class="sub">nur Stadt</span>' : '\u2713') : (v.geoFail ? '<span class="sub">nicht gefunden</span>' : '<span class="sub">\u2013</span>'))+'</td></tr>';
+        + '<td>'+(isTBA(v) ? '<span class="sub">TBA, kein Ort</span>' : v.lat != null ? (v.geoApprox ? '<span class="sub">nur Stadt</span>' : '\u2713') : (v.geoFail ? '<span class="sub">nicht gefunden</span>' : '<span class="sub">\u2013</span>'))+'</td></tr>';
     }).join('');
     $('venue-table').innerHTML = '<table><thead><tr><th>Venue</th><th>Kontakt</th><th>Shows</th><th>Zuletzt</th><th>Karte</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }
