@@ -331,7 +331,8 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 .emap-pop b{display:block;font-family:var(--d-font);font-weight:var(--d-weight);text-transform:var(--d-case);font-size:24px;line-height:1}
 .emap-pop .sub{display:block;margin-top:4px;font-size:13px;color:var(--muted)}
 .emap-pop a{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);color:var(--fg);text-decoration:none;font-size:14px}
-.emap-pop a:first-of-type{margin-top:10px}
+.emap-pop .grp{margin:16px 0 2px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.emap-pop .grp:first-of-type{margin-top:12px}
 .emap-pop a span:last-child{color:var(--muted);text-align:right}
 .emap-pop a small{display:block;font-size:12px;opacity:.75}
 .emap-pop a.up span:first-child{color:var(--accent)}
@@ -597,7 +598,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 
   <section class="sec" id="historie" style="padding-top:0">
     <div class="wrap">
-      <div class="phead"><h2 class="disp">Showhistorie</h2><div class="seg" id="map-years" role="group" aria-label="Zeitraum"></div></div>
+      <div class="phead"><h2 class="disp">Showhistorie</h2></div>
       <p class="plead" id="map-stats"></p>
       <div class="emap" id="emap"><svg id="emap-svg" role="img" aria-label="Karte aller Shows"></svg><div class="emap-pop" id="emap-pop" hidden></div></div>
       <div class="emap-foot"><div class="emap-legend"><span><i class="lg up"></i>Kommend</span><span><i class="lg past"></i>Gespielt</span></div><span class="emap-credit">Geodaten © OpenStreetMap-Mitwirkende, Natural Earth</span></div>
@@ -1482,15 +1483,11 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     return [cx - w / 2, cy - h / 2, w, h];
   }
   function histShows(){ return state.shows.filter(function(s){ return s.public && s.status !== 'abgesagt' && s.status !== 'anfrage'; }); }
-  state.mapYear = 'alle'; state.mapBox = null; state.mapOpen = null;
+  state.mapBox = null; state.mapOpen = null;
   function renderMap(){
     var svg = $('emap-svg'); if (!svg) return;
     var t = todayStr(), all = histShows();
-    var years = {}; all.forEach(function(s){ years[s.date.slice(0, 4)] = 1; });
-    var ys = Object.keys(years).sort().reverse();
-    if (state.mapYear !== 'alle' && state.mapYear !== 'kommend' && !years[state.mapYear]) state.mapYear = 'alle';
-    $('map-years').innerHTML = [['alle', 'Alle']].concat(ys.map(function(y){ return [y, y]; })).map(function(o){ return '<button type="button" data-y="'+o[0]+'" aria-pressed="'+(state.mapYear === o[0])+'">'+o[1]+'</button>'; }).join('');
-    var list = all.filter(function(s){ return state.mapYear === 'alle' || s.date.slice(0, 4) === state.mapYear; });
+    var list = all;
     // group by venue
     var by = {}, cities = {}, countries = {};
     list.forEach(function(s){
@@ -1502,7 +1499,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       g.venues[v.id] = v; g.shows.push(s);
     });
     var nShows = list.length, nCities = Object.keys(cities).length, nC = Object.keys(countries).length;
-    $('map-stats').textContent = nShows ? nShows + (nShows === 1 ? ' Show' : ' Shows') + ' in ' + nCities + (nCities === 1 ? ' Stadt' : ' Städten') + (nC > 1 ? ' und ' + nC + ' Ländern' : '') + (state.mapYear === 'alle' ? '' : ' (' + state.mapYear + ')') + '. Tippe auf einen Punkt.' : 'Hier erscheinen bald die Orte meiner Shows.';
+    $('map-stats').textContent = nShows ? nShows + (nShows === 1 ? ' Show' : ' Shows') + ' in ' + nCities + (nCities === 1 ? ' Stadt' : ' Städten') + (nC > 1 ? ' und ' + nC + ' Ländern' : '') + '. Tippe auf einen Punkt.' : 'Hier erscheinen bald die Orte meiner Shows.';
     var groups = Object.keys(by).map(function(k){ var g = by[k], vs = Object.keys(g.venues).map(function(id){ return g.venues[id]; });
       g.nVenues = vs.length; g.p = mproj(vs.reduce(function(a, v){ return a + v.lat; }, 0) / vs.length, vs.reduce(function(a, v){ return a + v.lng; }, 0) / vs.length); g.up = g.shows.some(function(s){ return s.date >= t; }); g.shows.sort(function(a, b){ return b.date.localeCompare(a.date); }); return g; });
     groups.sort(function(a, b){ return (a.up - b.up) || (b.shows.length - a.shows.length); });
@@ -1549,13 +1546,18 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     state.mapOpen = g.key;
     Array.prototype.forEach.call(document.querySelectorAll('#emap .dot'), function(d){ d.classList.toggle('on', +d.getAttribute('data-i') === i); });
     pop.innerHTML = '<button class="x" type="button" aria-label="Schließen">✕</button><b>'+esc(g.city)+'</b><span class="sub">'+g.shows.length+(g.shows.length === 1 ? ' Show' : ' Shows')+(g.nVenues > 1 ? ' in ' + g.nVenues + ' Venues' : ' · ' + esc(g.venues[Object.keys(g.venues)[0]].name))+'</span>'
-      + g.shows.map(function(s){ var sv = venueById(s.venueId); return '<a href="#show-'+esc(s.id)+'"'+(s.date >= t ? ' class="up"' : '')+'><span>'+ddmm(s.date)+s.date.slice(0, 4)+'</span><span>'+esc(s.title)+(g.nVenues > 1 && sv ? '<small>'+esc(sv.name)+'</small>' : '')+'</span></a>'; }).join('');
+      + (function(){
+        var row = function(s){ var sv = venueById(s.venueId); return '<a href="#show-'+esc(s.id)+'"'+(s.date >= t ? ' class="up"' : '')+'><span>'+ddmm(s.date)+s.date.slice(0, 4)+'</span><span>'+esc(s.title)+(g.nVenues > 1 && sv ? '<small>'+esc(sv.name)+'</small>' : '')+'</span></a>'; };
+        // upcoming first (soonest on top), past below (newest on top)
+        var up = g.shows.filter(function(s){ return s.date >= t; }).sort(function(a, b){ return a.date.localeCompare(b.date); });
+        var past = g.shows.filter(function(s){ return s.date < t; });
+        return (up.length ? '<p class="grp">Anstehende Shows</p>' + up.map(row).join('') : '') + (past.length ? '<p class="grp">Vergangene Shows</p>' + past.map(row).join('') : '');
+      })();
     pop.hidden = false; positionPop();
   }
   $('emap-svg').addEventListener('click', function(e){ var d = e.target.closest('.dot'); if (d) openMapPop(+d.getAttribute('data-i')); else closeMapPop(); });
   $('emap-svg').addEventListener('keydown', function(e){ var d = e.target.closest('.dot'); if (d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); openMapPop(+d.getAttribute('data-i')); } });
   $('emap-pop').addEventListener('click', function(e){ if (e.target.closest('.x')) closeMapPop(); });
-  $('map-years').addEventListener('click', function(e){ var b = e.target.closest('button[data-y]'); if (!b) return; state.mapYear = b.getAttribute('data-y'); closeMapPop(); renderMap(); });
   window.addEventListener('resize', function(){ if (state.dbReady){ state.mapBox = null; renderMap(); } });
 
   // small map on a show page: where is this show?
