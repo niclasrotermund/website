@@ -289,7 +289,10 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 @media (max-width:520px){.crop-grid{grid-template-columns:1fr 1fr}}
 .glist{list-style:none;margin:0;padding:0}
 .glist li{padding:14px 0;border-bottom:1px solid var(--line);font-size:15px}
+#editor{scroll-margin-top:84px}
 .showsearch{margin:4px 0 12px}
+.showsearch input{width:100%;font:400 15px/1.4 "Inter",Arial,sans-serif;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;-webkit-appearance:none;appearance:none}
+.showsearch input:focus{outline:none;border-color:var(--accent)}
 .showmore{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px}
 .showmore:empty{display:none}
 .dgrid.noimg{grid-template-columns:minmax(0,820px)}
@@ -485,6 +488,37 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .aform{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end;margin-top:14px}
 @media (max-width:520px){.aform{grid-template-columns:1fr 1fr}}
+/* intern, phone upright */
+@media (max-width:700px){
+  .intern .nav ul{gap:18px}
+  .intern .nav ul li:first-child{display:none}
+  .intern .nav ul a,.intern .nav .brand{white-space:nowrap}
+  .ihead{padding-block:28px 20px}
+  .ilayout{padding-block:12px 64px;gap:14px}
+  .card{padding:18px 16px}
+  .stat{padding:14px}
+  .stat b{font-size:32px}
+  #show-table{overflow:visible}
+  #show-table table,#show-table tbody{display:block;width:100%}
+  #show-table thead{display:none}
+  #show-table tr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+  #show-table tr:last-child{border-bottom:0}
+  #show-table td{display:block;border:0;padding:0}
+  #show-table td:nth-child(1){order:1}
+  #show-table td:nth-child(1) .sub{display:inline;margin-left:8px}
+  #show-table td:nth-child(3){order:2;margin-left:auto}
+  #show-table td:nth-child(2){order:3;flex-basis:100%;min-width:0}
+  #show-table td:nth-child(4){order:4;color:var(--muted)}
+  #show-table td:nth-child(4):has(.sub){display:none}
+  #show-table td:nth-child(5){order:5;margin-left:auto}
+  #show-table td:nth-child(5) .rowact{gap:18px}
+  #show-more{flex-wrap:wrap}
+  .arow{grid-template-columns:52px minmax(0,1fr);row-gap:8px}
+  .arow>.rowact{grid-column:2;flex-wrap:wrap;white-space:normal;gap:10px 16px}
+  .arow>.rowact select{max-width:100%;min-width:0}
+  .arow>div:not(.rowact){min-width:0;overflow-wrap:anywhere}
+  .srow{grid-template-columns:92px minmax(0,1fr) auto}
+}
 .gate{padding-block:120px}
 .gate p{color:var(--muted);margin-top:16px;max-width:48ch}
 .gate-login{max-width:420px;margin-top:32px}
@@ -803,7 +837,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
               <label class="f" for="pj-guest">Gastspiele (eins pro Zeile)<textarea id="pj-guest" placeholder="z. B. Staatstheater Kassel, März 2025"></textarea></label>
             </div>
             <label class="f" for="pj-text">Beschreibung<textarea id="pj-text" placeholder="Ein paar Sätze zum Projekt"></textarea></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="row2">
               <label class="f" for="pj-spotify">Spotify (optional)<input id="pj-spotify" type="url" placeholder="https://open.spotify.com/…"></label>
               <label class="f" for="pj-insta">Instagram (optional)<input id="pj-insta" type="url" placeholder="https://instagram.com/…"></label>
             </div>
