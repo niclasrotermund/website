@@ -300,6 +300,8 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 .swatch input::-webkit-color-swatch-wrapper{padding:0}
 .swatch input::-webkit-color-swatch{border:0;border-radius:50%}
 .swatch input::-moz-color-swatch{border:0;border-radius:50%}
+.pimg .cimg{width:100%;height:100%}
+.pn:hover .pimg .cimg .fg{transform:scale(calc(var(--z) * 1.06))}
 .more-shows{margin-top:32px;display:flex;justify-content:center}
 main:not([data-page="termine"]) .show.extra{display:none}
 main[data-page="termine"] .more-shows{display:none}
@@ -1270,7 +1272,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   }
   // stock photos (no own picture yet) are simply cropped to fill
   // without an own picture there is simply no picture: detail views go full width, small cards drop the thumbnail
-  function pimg(src){ return src ? '<span class="pimg"><img src="'+esc(src)+'" alt="" loading="lazy"></span>' : ''; }
+  function pimg(src, crop){ return src ? '<span class="pimg">'+cimg(src, crop, '', '', true, true)+'</span>' : ''; }
   function dpic(src, crop, alt){ return src ? cimg(src, crop, alt, 'dimg') : ''; }
   function projCrop(p){ return (p.photoId || photoFor(p.title)) ? p.crop : { d: { g: 0 }, m: { g: 0 } }; }
   function projPhoto(p, i){ return p.photoId ? '/_blob/' + p.photoId : photoFor(p.title); }
@@ -1348,7 +1350,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var upcoming = upcomingPublic().filter(function(s){ return norm(s.title) === norm(p.title) || (s.seriesName && norm(s.seriesName) === norm(p.title)); });
     var card = function(x, dir){
       if (!x) return '<div class="pn empty"></div>';
-      return '<a class="pn '+dir+(projPhoto(x) ? '' : ' noimg')+'" href="#projekt-'+esc(x.id)+'" id="d-'+dir+'">'+pimg(projPhoto(x))+'<span class="ptxt"><span class="label">'+(dir === 'prev' ? '\u2190 Vorheriges Projekt' : 'N\u00e4chstes Projekt \u2192')+'</span><b class="disp">'+esc(x.title)+'</b><span class="pmeta">'+esc(KINDS[x.kind] || '')+'</span></span></a>';
+      return '<a class="pn '+dir+(projPhoto(x) ? '' : ' noimg')+'" href="#projekt-'+esc(x.id)+'" id="d-'+dir+'">'+pimg(projPhoto(x), projCrop(x))+'<span class="ptxt"><span class="label">'+(dir === 'prev' ? '\u2190 Vorheriges Projekt' : 'N\u00e4chstes Projekt \u2192')+'</span><b class="disp">'+esc(x.title)+'</b><span class="pmeta">'+esc(KINDS[x.kind] || '')+'</span></span></a>';
     };
     var nav = all.length > 1 ? '<div class="dnav"><p class="cnt label">Projekt '+(pos+1)+' von '+all.length+'</p><div class="pngrid">'+card(prev, 'prev')+card(next, 'next')+'</div></div>' : '';
     el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span><button class="close" type="button" id="detail-close">Schlie\u00dfen \u2715</button></div>'
@@ -1525,7 +1527,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var card = function(x, dir){
       if (!x) return '<div class="pn empty"></div>';
       var xv = venueById(x.venueId), xp = showPhoto(x);
-      return '<a class="pn '+dir+(xp ? '' : ' noimg')+'" href="#show-'+esc(x.id)+'" id="d-'+dir+'">'+pimg(xp)+'<span class="ptxt"><span class="label">'+(dir === 'prev' ? '← Vorheriger Termin' : 'Nächster Termin →')+'</span><b class="disp">'+esc(x.title)+'</b><span class="pmeta">'+ddmm(x.date)+x.date.slice(0,4)+(xv ? ' · '+esc(xv.city || xv.name) : '')+'</span></span></a>';
+      return '<a class="pn '+dir+(xp ? '' : ' noimg')+'" href="#show-'+esc(x.id)+'" id="d-'+dir+'">'+pimg(xp, showCrop(x, xp))+'<span class="ptxt"><span class="label">'+(dir === 'prev' ? '← Vorheriger Termin' : 'Nächster Termin →')+'</span><b class="disp">'+esc(x.title)+'</b><span class="pmeta">'+ddmm(x.date)+x.date.slice(0,4)+(xv ? ' · '+esc(xv.city || xv.name) : '')+'</span></span></a>';
     };
     var nav = pos >= 0 && all.length > 1 ? '<div class="dnav"><p class="cnt label">Termin '+(pos+1)+' von '+all.length+'</p><div class="pngrid">'+card(prev, 'prev')+card(next, 'next')+'</div></div>' : '';
     el.innerHTML = '<div class="wrap"><div class="bar"><span class="label">Niclas Rotermund</span><button class="close" type="button" id="detail-close">Schließen ✕</button></div>'
