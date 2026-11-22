@@ -9,7 +9,7 @@
       "destination": "https://uwuyxcrnzxohupzeesic.supabase.co/storage/v1/object/public/website/:path*"
     },
     {
-      "source": "/(termine|projekte|videos|medien|kontakt)",
+      "source": "/(termine|historie|projekte|videos|medien|kontakt)",
       "destination": "/"
     }
   ],

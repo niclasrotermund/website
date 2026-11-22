@@ -36,7 +36,7 @@ Die Website nutzt **dieselbe Supabase-Datenbank wie das Tourbuch**, aber eine ei
 
 ## Seiten
 
-Die Startseite zeigt alles untereinander. Zusätzlich hat jeder Bereich eine eigene Adresse mit eigenem Headerbild: `/termine`, `/projekte`, `/videos`, `/medien`, `/kontakt` (siehe `rewrites` in `vercel.json`). Die Headerbilder tauschst du im internen Bereich unter **Seiten**.
+Die Startseite zeigt alles untereinander. Zusätzlich hat jeder Bereich eine eigene Adresse mit eigenem Headerbild: `/termine`, `/historie`, `/projekte`, `/videos`, `/medien`, `/kontakt` (siehe `rewrites` in `vercel.json`). Die Headerbilder tauschst du im internen Bereich unter **Seiten**.
 
 Die digitale Visitenkarte liegt als `public/kontakt.vcf`. Ändert sich Telefonnummer oder E-Mail, diese Datei und die Karte in `src/site.html` anpassen.
 
