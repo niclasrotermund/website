@@ -714,9 +714,10 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
               <label class="f" for="pj-year">Zeitraum<input id="pj-year" placeholder="z. B. seit 2023 oder 2025"></label>
             </div>
             <label class="f" for="pj-role">Meine Rolle<input id="pj-role" placeholder="z. B. Booking, Tourmanagement, Schlagzeug"></label>
+            <label class="check" id="pj-atvenue-box" hidden><input type="checkbox" id="pj-atvenue"> Fand an einem Theater oder einer Venue statt</label>
             <div id="pj-theater-box" hidden>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <label class="f" for="pj-theater">Theater<input id="pj-theater" placeholder="z. B. Schauspiel Leipzig"></label>
+                <label class="f" for="pj-theater"><span id="pj-theater-lbl">Theater</span><input id="pj-theater" placeholder="z. B. Schauspiel Leipzig"></label>
                 <label class="f" for="pj-director">Regisseur<input id="pj-director" placeholder="Name"></label>
               </div>
               <label class="f" for="pj-guest">Gastspiele (eins pro Zeile)<textarea id="pj-guest" placeholder="z. B. Staatstheater Kassel, März 2025"></textarea></label>
@@ -1266,7 +1267,10 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   function kindChanged(){
     var v = $('pj-kind').value;
     $('pj-kind-own-box').hidden = v !== '__new';
-    $('pj-theater-box').hidden = !STAGE_KINDS[v];
+    var stage = !!STAGE_KINDS[v];
+    $('pj-atvenue-box').hidden = stage;
+    $('pj-theater-box').hidden = !(stage || $('pj-atvenue').checked);
+    $('pj-theater-lbl').textContent = stage ? 'Theater' : 'Theater oder Venue';
   }
   state.projFilter = 'alle';
   function realProjects(){ return state.projects.slice().sort(function(a, b){ return (a.order || 0) - (b.order || 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')); }); }
@@ -1314,7 +1318,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     $('proj-nav') && ($('proj-nav').hidden = $('projekte').hidden);
     $('public-projects').innerHTML = list.length ? list.map(function(p){
       var i = all.indexOf(p);
-      return '<a class="pcard" href="#projekt-'+esc(p.id)+'">'+(projPhoto(p, i) ? cimg(projPhoto(p, i), projCrop(p), p.title, 'pc-img', true, true) : '<span class="pc-img pc-none" aria-hidden="true"><span>'+esc(p.title)+'</span></span>')+'<span class="pc-kind">'+esc(kindOf(p) || '')+'</span><b>'+esc(p.title)+'</b><span class="pc-meta">'+esc([p.role, p.year].filter(Boolean).join(' \u00b7 '))+'</span></a>';
+      return '<a class="pcard" href="#projekt-'+esc(p.id)+'">'+(projPhoto(p, i) ? cimg(projPhoto(p, i), projCrop(p), p.title, 'pc-img', true, true) : '<span class="pc-img pc-none" aria-hidden="true"><span>'+esc(p.title)+'</span></span>')+'<span class="pc-kind">'+esc(kindOf(p) || '')+'</span><b>'+esc(p.title)+'</b><span class="pc-meta">'+esc([p.theater, p.role, p.year].filter(Boolean).join(' \u00b7 '))+'</span></a>';
     }).join('') : '<div class="empty" style="grid-column:1/-1">'+(all.length ? 'In dieser Kategorie gibt es noch nichts.' : 'Projekte legst du im internen Bereich an.')+'</div>';
   }
   $('proj-filter').addEventListener('click', function(e){
@@ -1377,7 +1381,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     if (!p){ if (state.dbReady) closeDetail(); return; }
     if (el.hidden) lastScroll = window.scrollY;
     var pos = all.indexOf(p), prev = pos > 0 ? all[pos-1] : null, next = pos < all.length - 1 ? all[pos+1] : null;
-    var rows = [['Art', kindOf(p) || '']]; if (p.role) rows.push(['Meine Rolle', p.role]); if (p.year) rows.push(['Zeitraum', p.year]); if (p.theater) rows.push(['Theater', p.theater]); if (p.director) rows.push(['Regisseur', p.director]);
+    var rows = [['Art', kindOf(p) || '']]; if (p.role) rows.push(['Meine Rolle', p.role]); if (p.year) rows.push(['Zeitraum', p.year]); if (p.theater) rows.push([STAGE_KINDS[p.kind] ? 'Theater' : 'Ort', p.theater]); if (p.director) rows.push(['Regisseur', p.director]);
     var guests = String(p.guest || '').split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
     var upcoming = upcomingPublic().filter(function(s){ return norm(s.title) === norm(p.title) || (s.seriesName && norm(s.seriesName) === norm(p.title)); });
     var card = function(x, dir){
@@ -1470,6 +1474,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   function theaterBox(){ kindChanged(); }
   $('pj-kind').addEventListener('change', function(){ kindChanged(); if (this.value === '__new') $('pj-kind-own').focus(); });
   fillKindSelect('artist');
+  $('pj-atvenue').addEventListener('change', kindChanged);
   $('pj-reset').addEventListener('click', function(){ resetProjForm(); $('proj-msg').textContent = ''; });
   $('pj-file').addEventListener('change', function(){
     var f = this.files[0]; $('proj-msg').textContent = f ? 'Foto: ' + f.name : '';
@@ -1482,7 +1487,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     var kv = $('pj-kind').value, kind = kv, kindLabel = '';
     if (kv === '__new'){ kind = 'eigene'; kindLabel = $('pj-kind-own').value.trim(); if (!kindLabel){ $('proj-msg').textContent = 'Bitte die eigene Art eintragen.'; $('pj-kind-own').focus(); return; } }
     else if (kv.indexOf('eigene:') === 0){ kind = 'eigene'; kindLabel = kv.slice(7); }
-    var data = { title: $('pj-title').value.trim(), kind: kind, kindLabel: kindLabel, year: $('pj-year').value.trim(), role: $('pj-role').value.trim(), text: $('pj-text').value.trim(), theater: $('pj-theater').value.trim(), director: $('pj-director').value.trim(), guest: $('pj-guest').value.trim(), spotify: links.spotify, instagram: links.instagram, video: links.video, link: links.link, crop: JSON.parse(JSON.stringify(state.projCrop)), accent: state.projAccent || '' };
+    var data = { title: $('pj-title').value.trim(), kind: kind, kindLabel: kindLabel, year: $('pj-year').value.trim(), role: $('pj-role').value.trim(), text: $('pj-text').value.trim(), atVenue: !STAGE_KINDS[kind] && $('pj-atvenue').checked, theater: (STAGE_KINDS[kind] || $('pj-atvenue').checked) ? $('pj-theater').value.trim() : '', director: $('pj-director').value.trim(), guest: $('pj-guest').value.trim(), spotify: links.spotify, instagram: links.instagram, video: links.video, link: links.link, crop: JSON.parse(JSON.stringify(state.projCrop)), accent: state.projAccent || '' };
     var f = $('pj-file').files[0], btn = $('pj-save'), editing = state.editProj; btn.disabled = true; $('proj-msg').textContent = 'Speichere \u2026';
     (f ? upload(f) : Promise.resolve('')).then(function(pid){
       if (pid) data.photoId = pid;
@@ -1499,7 +1504,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     if (b.hasAttribute('data-pjedit')){
       var p = sortedProjects().filter(function(x){ return x.id === b.getAttribute('data-pjedit'); })[0]; if (!p) return;
       state.editProj = p.virtual ? null : p.id; state.projSeedPhoto = p.virtual ? p.photoId : '';
-      $('pj-title').value = p.title || ''; fillKindSelect(p.kind === 'eigene' ? 'eigene:' + (p.kindLabel || '') : (p.kind || 'artist')); $('pj-kind-own').value = ''; $('pj-year').value = p.year || ''; $('pj-role').value = p.role || ''; $('pj-text').value = p.text || ''; $('pj-theater').value = p.theater || ''; $('pj-director').value = p.director || ''; $('pj-guest').value = p.guest || ''; theaterBox();
+      $('pj-title').value = p.title || ''; fillKindSelect(p.kind === 'eigene' ? 'eigene:' + (p.kindLabel || '') : (p.kind || 'artist')); $('pj-kind-own').value = ''; $('pj-year').value = p.year || ''; $('pj-role').value = p.role || ''; $('pj-text').value = p.text || ''; $('pj-theater').value = p.theater || ''; $('pj-atvenue').checked = !!(p.atVenue || (p.theater && !STAGE_KINDS[p.kind])); $('pj-director').value = p.director || ''; $('pj-guest').value = p.guest || ''; theaterBox();
       $('pj-spotify').value = p.spotify || ''; $('pj-insta').value = p.instagram || ''; $('pj-video').value = p.video || ''; $('pj-link').value = p.link || '';
       $('proj-form-title').textContent = (p.virtual ? 'Artist als Projekt erg\u00e4nzen: ' : 'Projekt bearbeiten: ') + p.title;
       setAccent(p.accent || '');
