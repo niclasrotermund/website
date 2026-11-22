@@ -319,11 +319,17 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 .emap .dot{cursor:pointer;outline:none}
 .emap .dot:focus-visible .core{stroke:var(--fg);stroke-width:2;vector-effect:non-scaling-stroke}
 .emap .dot circle{transition:opacity .3s}
-.emap .dot .core{fill:var(--fg);opacity:.55}
-.emap .dot.up .core{fill:var(--accent);opacity:1}
+.emap .dot .core{fill:var(--accent);opacity:.85;fill-opacity:.9}
 .emap .dot .ring{fill:none;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:0}
-.emap .dot.up .ring{animation:mpulse 2.4s var(--ease) infinite}
 .emap .dot:hover .core,.emap .dot.on .core{opacity:1}
+.emap.zoomed{touch-action:none}
+.emap.drag{cursor:grabbing}
+.emap-zoom{position:absolute;z-index:1;top:12px;right:12px;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.emap-zoom button{width:38px;height:38px;border:0;background:none;color:var(--fg);font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.emap-zoom button+button{border-top:1px solid var(--line)}
+.emap-zoom button:hover{background:var(--surface)}
+.emap-zoom button[data-z="home"]{font-size:15px}
+.emap:not(.zoomed) .emap-zoom button[data-z="home"]{display:none}
 .emap .dot.on .core{stroke:var(--fg);stroke-width:2;vector-effect:non-scaling-stroke}
 @keyframes mpulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.6)}}
 .emap .dot .ring{transform-box:fill-box;transform-origin:center}
@@ -338,9 +344,6 @@ html.dopen .detail,html.dopen #igbox{visibility:visible}
 .emap-pop a.up span:first-child{color:var(--accent)}
 .emap-pop .x{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer}
 .emap-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
-.emap-legend{display:flex;gap:16px}
-.emap-legend .lg{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--fg);opacity:.55}
-.emap-legend .lg.up{background:var(--accent);opacity:1}
 .emap-top{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 24px;margin-top:36px}
 .emap-top div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
 .emap-top div span:last-child{color:var(--muted)}
@@ -596,16 +599,6 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     </div>
   </section>
 
-  <section class="sec" id="historie" style="padding-top:0">
-    <div class="wrap">
-      <div class="phead"><h2 class="disp">Showhistorie</h2></div>
-      <p class="plead" id="map-stats"></p>
-      <div class="emap" id="emap"><svg id="emap-svg" role="img" aria-label="Karte aller Shows"></svg><div class="emap-pop" id="emap-pop" hidden></div></div>
-      <div class="emap-foot"><div class="emap-legend"><span><i class="lg up"></i>Kommend</span><span><i class="lg past"></i>Gespielt</span></div><span class="emap-credit">Geodaten © OpenStreetMap-Mitwirkende, Natural Earth</span></div>
-      <div class="emap-top" id="map-top"></div>
-    </div>
-  </section>
-
   <section class="sec" id="projekte" style="padding-top:0">
     <div class="wrap">
       <div class="phead"><h2 class="disp">Projekte</h2>
@@ -618,6 +611,16 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       </div>
       <p class="plead">Artists, die ich buche und betreue, Veranstaltungen, die ich organisiere, und Theaterproduktionen, für die ich arbeite.</p>
       <div class="pgal" id="public-projects"><div class="empty">Projekte werden geladen …</div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="historie" style="padding-top:0">
+    <div class="wrap">
+      <div class="phead"><h2 class="disp">Showhistorie</h2></div>
+      <p class="plead" id="map-stats"></p>
+      <div class="emap" id="emap"><svg id="emap-svg" role="img" aria-label="Karte aller Shows"></svg><div class="emap-zoom"><button type="button" data-z="in" aria-label="Hineinzoomen">+</button><button type="button" data-z="out" aria-label="Herauszoomen">−</button><button type="button" data-z="home" aria-label="Ganze Karte">⟲</button></div><div class="emap-pop" id="emap-pop" hidden></div></div>
+      <div class="emap-foot"><span class="sub">Zoomen mit + und −, zwei Fingern oder Strg + Mausrad.</span><span class="emap-credit">Geodaten © OpenStreetMap-Mitwirkende, Natural Earth</span></div>
+      <div class="emap-top" id="map-top"></div>
     </div>
   </section>
 
@@ -1506,8 +1509,9 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     state.mapGroups = groups;
     var rect = $('emap').getBoundingClientRect(), aspect = rect.width && rect.height ? rect.width / rect.height : 16 / 9;
     var target = fitBox(groups.map(function(g){ return g.p; }), aspect, 170);
+    state.mapHome = target; $('emap').classList.remove('zoomed');
     svg.innerHTML = '<g>'+LAND+'</g><g id="emap-dots">' + groups.map(function(g, i){
-      return '<g class="dot'+(g.up ? ' up' : '')+(state.mapOpen === g.key ? ' on' : '')+'" data-i="'+i+'" tabindex="0" role="button" aria-label="'+esc(g.city + ', ' + g.shows.length + (g.shows.length === 1 ? ' Show' : ' Shows'))+'"><circle class="ring"/><circle class="core"/></g>';
+      return '<g class="dot'+(state.mapOpen === g.key ? ' on' : '')+'" data-i="'+i+'" tabindex="0" role="button" aria-label="'+esc(g.city + ', ' + g.shows.length + (g.shows.length === 1 ? ' Show' : ' Shows'))+'"><circle class="ring"/><circle class="core"/></g>';
     }).join('') + '</g>';
     animateBox(svg, target);
     // most played cities
@@ -1523,9 +1527,10 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       Array.prototype.forEach.call(el.querySelectorAll('circle'), function(c){ c.setAttribute('cx', g.p[0]); c.setAttribute('cy', g.p[1]); c.setAttribute('r', r); });
     });
   }
-  function animateBox(svg, to){
-    var from = state.mapBox || to, t0 = performance.now(), dur = state.mapBox ? 700 : 0;
+  function animateBox(svg, to, ms){
+    var from = state.mapBox || to, t0 = performance.now(), dur = state.mapBox ? (ms || 700) : 0, tok = state.mapAnim = {};
     var step = function(now){
+      if (state.mapAnim !== tok) return;
       var k = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - k, 3);
       var b = from.map(function(v, i){ return v + (to[i] - v) * e; });
       svg.setAttribute('viewBox', b.join(' ')); placeDots(svg, b); state.mapBox = b;
@@ -1555,7 +1560,57 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
       })();
     pop.hidden = false; positionPop();
   }
-  $('emap-svg').addEventListener('click', function(e){ var d = e.target.closest('.dot'); if (d) openMapPop(+d.getAttribute('data-i')); else closeMapPop(); });
+  // zoom and pan
+  function mapSet(b, ms){
+    var home = state.mapHome || b, minW = home[2] / 14, maxW = Math.max(home[2], EUROPE.W);
+    var w = Math.max(minW, Math.min(maxW, b[2])), h = b[3] * w / b[2];
+    var cx = Math.max(0, Math.min(EUROPE.W, b[0] + b[2] / 2)), cy = Math.max(0, Math.min(EUROPE.H, b[1] + b[3] / 2));
+    var nb = [cx - w / 2, cy - h / 2, w, h], svg = $('emap-svg');
+    $('emap').classList.toggle('zoomed', Math.abs(w - home[2]) > home[2] * .03 || Math.abs(cx - home[0] - home[2] / 2) > home[2] * .03 || Math.abs(cy - home[1] - home[3] / 2) > home[3] * .03);
+    if (ms) return animateBox(svg, nb, ms);
+    state.mapAnim = null; svg.setAttribute('viewBox', nb.join(' ')); placeDots(svg, nb); state.mapBox = nb; if (state.mapOpen) positionPop();
+  }
+  function mapZoom(f, fx, fy, ms){   // f > 1 zooms in, fx/fy = point that stays put (0..1)
+    var b = state.mapBox; if (!b) return;
+    var w = b[2] / f, h = b[3] / f, x = b[0] + b[2] * fx, y = b[1] + b[3] * fy;
+    mapSet([x - w * fx, y - h * fy, w, h], ms);
+  }
+  document.querySelector('#emap .emap-zoom').addEventListener('click', function(e){
+    var z = e.target.closest('button'); if (!z) return; z = z.getAttribute('data-z');
+    if (z === 'home') mapSet(state.mapHome, 500); else mapZoom(z === 'in' ? 1.8 : 1 / 1.8, .5, .5, 350);
+  });
+  (function(){
+    var el = $('emap'), pts = {}, start = null;
+    var rel = function(x, y){ var r = el.getBoundingClientRect(); return [(x - r.left) / r.width, (y - r.top) / r.height, r]; };
+    el.addEventListener('wheel', function(e){
+      if (!e.ctrlKey && !e.metaKey) return;   // trackpad pinch or Ctrl + wheel; plain wheel keeps scrolling the page
+      e.preventDefault(); var q = rel(e.clientX, e.clientY);
+      mapZoom(Math.exp(-e.deltaY * (e.deltaMode ? .05 : .01)), q[0], q[1]);
+    }, { passive: false });
+    el.addEventListener('pointerdown', function(e){
+      if (e.target.closest('.emap-pop, .emap-zoom') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      pts[e.pointerId] = [e.clientX, e.clientY]; start = [e.clientX, e.clientY]; state.mapMoved = false;
+    });
+    var end = function(e){ delete pts[e.pointerId]; if (!Object.keys(pts).length) el.classList.remove('drag'); };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    el.addEventListener('pointermove', function(e){
+      var old = pts[e.pointerId]; if (!old || !state.mapBox) return;
+      var ids = Object.keys(pts), b = state.mapBox, q = rel(e.clientX, e.clientY), r = q[2];
+      if (ids.length === 1){
+        if (!el.classList.contains('zoomed')) return;
+        if (!state.mapMoved && Math.abs(e.clientX - start[0]) + Math.abs(e.clientY - start[1]) < 5) return;
+        if (!state.mapMoved){ state.mapMoved = true; el.classList.add('drag'); try { el.setPointerCapture(e.pointerId); } catch (x){} }
+        mapSet([b[0] - (e.clientX - old[0]) / r.width * b[2], b[1] - (e.clientY - old[1]) / r.height * b[3], b[2], b[3]]);
+      } else if (ids.length === 2){
+        var other = pts[ids[0] == e.pointerId ? ids[1] : ids[0]];
+        var d0 = Math.hypot(old[0] - other[0], old[1] - other[1]), d1 = Math.hypot(e.clientX - other[0], e.clientY - other[1]);
+        if (d0 > 0){ state.mapMoved = true; var m = rel((e.clientX + other[0]) / 2, (e.clientY + other[1]) / 2); mapZoom(d1 / d0, m[0], m[1]); }
+        e.preventDefault();
+      }
+      pts[e.pointerId] = [e.clientX, e.clientY];
+    });
+  })();
+  $('emap-svg').addEventListener('click', function(e){ if (state.mapMoved){ state.mapMoved = false; return; } var d = e.target.closest('.dot'); if (d) openMapPop(+d.getAttribute('data-i')); else closeMapPop(); });
   $('emap-svg').addEventListener('keydown', function(e){ var d = e.target.closest('.dot'); if (d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); openMapPop(+d.getAttribute('data-i')); } });
   $('emap-pop').addEventListener('click', function(e){ if (e.target.closest('.x')) closeMapPop(); });
   window.addEventListener('resize', function(){ if (state.dbReady){ state.mapBox = null; renderMap(); } });
