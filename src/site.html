@@ -621,7 +621,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     <ul id="pub-menu">
       <li><a href="#termine" data-page="termine">Termine</a></li>
       <li id="proj-nav"><a href="#projekte" data-page="projekte">Projekte</a></li>
-      <li><a href="#historie" data-page="historie">Showhistorie</a></li>
+      <li id="hist-nav" hidden><a href="#historie" data-page="historie">Showhistorie</a></li>
       <li><a href="#videos" data-page="videos">Videos</a></li>
       <li><a href="#medien" data-page="medien">Medien</a></li>
       <li><a href="#kontakt" data-page="kontakt">Kontakt</a></li>
@@ -668,9 +668,9 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     </div>
   </section>
 
-  <section class="sec" id="historie" style="padding-top:0">
+  <section class="sec" id="historie" style="padding-top:0" hidden>
     <div class="wrap">
-      <div class="phead"><h2 class="disp">Showhistorie</h2></div>
+      <div class="phead"><h2 class="disp">Showhistorie</h2></div><p class="sub" id="hist-private" hidden style="margin:-20px 0 24px;color:var(--accent)">Noch versteckt: Nur du siehst diesen Bereich, weil du eingeloggt bist.</p>
       <p class="plead" id="map-stats"></p>
       <div class="emap" id="emap"><svg id="emap-svg" role="img" aria-label="Karte aller Shows"></svg><div class="emap-zoom"><button type="button" data-z="in" aria-label="Hineinzoomen">+</button><button type="button" data-z="out" aria-label="Herauszoomen">−</button><button type="button" data-z="home" aria-label="Ganze Karte">⟲</button></div><div class="emap-pop" id="emap-pop" hidden></div></div>
       <div class="emap-foot"><span class="sub">Zoomen mit + und −, zwei Fingern oder Strg + Mausrad.</span><span class="emap-credit">Geodaten © OpenStreetMap-Mitwirkende, Natural Earth</span></div>
@@ -888,6 +888,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
             <textarea id="imp-text" rows="6" spellcheck="false" placeholder='[{"title": "…", "date": "2024-05-19", "venue": "…", "city": "…"}]'></textarea>
             <div class="rowact" style="justify-content:flex-start;margin-top:10px"><button class="btn sm" type="button" id="imp-btn">Importieren</button><span class="sub" id="imp-msg"></span></div>
           </details>
+          <label class="check" style="margin-bottom:14px"><input type="checkbox" id="hist-public"> Showhistorie auf der Website zeigen</label>
           <div class="rowact" style="justify-content:flex-start;margin-bottom:12px"><button class="btn line sm" type="button" id="geo-btn">Orte für die Karte suchen</button><span class="sub" id="geo-msg"></span></div>
           <div class="tablewrap" id="venue-table"></div>
         </div>
@@ -1135,7 +1136,17 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   function pageImg(pg){ var m = state.gallery.pages || {}; return m[pg] ? keySrc(m[pg]) : PAGES[pg].img; }
   document.querySelectorAll('[data-page]').forEach(function(a){ a.setAttribute('href', pageHref(a.getAttribute('data-page'))); });
   document.querySelectorAll('[data-home]').forEach(function(a){ a.setAttribute('href', homeHref()); });
+  // Showhistorie stays hidden until it is switched on (logged in you always see it)
+  function histPublic(){ return state.gallery.showHistory === true; }
+  function applyHist(){
+    var pub = histPublic(), vis = pub || !!state.canEdit;
+    if ($('historie').hidden && vis) state.mapBox = null;
+    $('historie').hidden = !vis; $('hist-nav').hidden = !vis; $('hist-private').hidden = pub || !vis;
+    if ($('hist-public')) $('hist-public').checked = pub;
+  }
   function applyPage(){
+    applyHist();
+    if (state.page === 'historie' && !histPublic() && !state.canEdit) state.page = null;
     var pg = state.page, main = $('start'), was = main.getAttribute('data-page') || '';
     main.classList.toggle('pagemode', !!pg);
     if (pg) main.setAttribute('data-page', pg); else main.removeAttribute('data-page');
@@ -1737,6 +1748,10 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
     p.then(function(){ msg.textContent = added + ' Shows importiert' + (skipped ? ', ' + skipped + ' schon vorhanden' : '') + '. Jetzt „Orte für die Karte suchen“ klicken.'; $('imp-text').value = ''; })
      .catch(function(err){ msg.textContent = 'Hat nicht geklappt: ' + (err && err.message || err); })
      .then(function(){ btn.disabled = false; });
+  });
+  $('hist-public').addEventListener('change', function(){
+    if (!db) return; var on = this.checked;
+    db.doc('settings/gallery').set(Object.assign({}, state.gallery, { showHistory: on })).catch(function(err){ $('geo-msg').textContent = 'Hat nicht geklappt: ' + (err && err.message || err); });
   });
   $('geo-btn').addEventListener('click', function(){
     if (!db) return;
@@ -2468,7 +2483,7 @@ label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);min-width:0}
   }
 
   /* ---------- data ---------- */
-  function rerender(){ renderPublic(); renderIntern(); if (location.hash.indexOf('#show-') === 0) openDetail(location.hash.slice(6)); else if (location.hash.indexOf('#projekt-') === 0) openProject(location.hash.slice(9)); }
+  function rerender(){ applyHist(); renderPublic(); renderIntern(); if (location.hash.indexOf('#show-') === 0) openDetail(location.hash.slice(6)); else if (location.hash.indexOf('#projekt-') === 0) openProject(location.hash.slice(9)); }
   renderTicker([]);
   route();
   var timer = setTimeout(function(){ if (!state.dbReady) $('public-shows').innerHTML = '<div class="empty">Die Termine lassen sich gerade nicht laden.</div>'; }, 10000);
